@@ -11,8 +11,8 @@ const LiveBackground: React.FC = () => {
   useEffect(() => {
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
-    let w = (canvas.width = window.innerWidth * devicePixelRatio);
-    let h = (canvas.height = window.innerHeight * devicePixelRatio);
+    canvas.width = window.innerWidth * devicePixelRatio;
+    canvas.height = window.innerHeight * devicePixelRatio;
     canvas.style.width = `${window.innerWidth}px`;
     canvas.style.height = `${window.innerHeight}px`;
     ctx.scale(devicePixelRatio, devicePixelRatio);
@@ -84,8 +84,8 @@ const LiveBackground: React.FC = () => {
     };
 
     const onResize = () => {
-      w = (canvas.width = window.innerWidth * devicePixelRatio);
-      h = (canvas.height = window.innerHeight * devicePixelRatio);
+      canvas.width = window.innerWidth * devicePixelRatio;
+      canvas.height = window.innerHeight * devicePixelRatio;
       canvas.style.width = `${window.innerWidth}px`;
       canvas.style.height = `${window.innerHeight}px`;
       ctx.setTransform(1, 0, 0, 1, 0, 0);

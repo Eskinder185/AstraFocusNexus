@@ -8,11 +8,12 @@ interface Props{
   activeTaskId:number|null; setActiveTaskId:(id:number|null)=>void; tasks:Task[]; filteredTasks:Task[];
   filter:Filter; setFilter:(f:Filter)=>void; toggleTask:(id:number)=>void; removeTask:(id:number)=>void;
   clearCompleted:()=>void; remaining:number; priorityPref:Priority; setPriorityPref:(p:Priority)=>void;
-  setTaskPriority:(id:number,p:Priority)=>void;
+  setTaskPriority:(id:number,p:Priority)=>void; pomoRunning:boolean;
 }
+
 const Home:React.FC<Props>= (p) => (
   <>
-    <h1 className="title">Task Tracker <span className="badge">?</span></h1>
+    <h1 className="title">Task Tracker <span className="badge">✨</span></h1>
     <div className="row card" style={{gap:8,flexWrap:"wrap"}}>
       <input className="input" value={p.input} placeholder="Enter a task"
         onChange={e=>p.setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&p.addTask()} />
@@ -20,13 +21,18 @@ const Home:React.FC<Props>= (p) => (
       <label style={{display:"flex",alignItems:"center",gap:6}}>
         <input type="checkbox" checked={p.remind} onChange={e=>p.setRemind(e.target.checked)} /> Remind me
       </label>
-      <label style={{display:"flex",alignItems:"center",gap:6}}>
-        Priority:
-        <select value={p.priorityPref} onChange={e=>p.setPriorityPref(e.target.value as Priority)}>
-          <option value="UI">Urgent + Important</option><option value="UN">Urgent + Not Important</option>
-          <option value="NI">Not Urgent + Important</option><option value="NN">Not Urgent + Not Important</option>
-        </select>
-      </label>
+      <div style={{display:"flex",alignItems:"center",gap:6}}>
+        <span>Priority:</span>
+        <div className="pill-group priority-pills">
+          {(["UI","UN","NI","NN"] as Priority[]).map(pr => (
+            <button key={pr}
+              className={`pill small ${p.priorityPref===pr?"active":""}`}
+              onClick={()=>p.setPriorityPref(pr)}
+              title={pr==="UI"?"Urgent + Important":pr==="UN"?"Urgent + Not Important":pr==="NI"?"Not Urgent + Important":"Not Urgent + Not Important"}
+            >{pr}</button>
+          ))}
+        </div>
+      </div>
       <button className="btn" onClick={p.addTask}>Add Task</button>
       <button className="btn" onClick={p.requestPermission}>Enable Notifications</button>
     </div>
@@ -43,26 +49,30 @@ const Home:React.FC<Props>= (p) => (
       </div>
     </div>
 
-    {p.filteredTasks.length===0? <p className="empty">No tasks here yet.</p> :
+    {p.filteredTasks.length===0? <p className="empty empty--prompt">✨ Add your first task above to get started! <span className="arrow-up">⬆️</span></p> :
       <ul className="list">
         {p.filteredTasks.map(task=>(
-          <li className="item" key={task.id}>
+          <li className={`item ${p.activeTaskId===task.id && p.pomoRunning?"pomo-active":""}`} key={task.id}>
             <input type="checkbox" checked={task.completed} onChange={()=>p.toggleTask(task.id)} title="Toggle complete"/>
             <span className={`text ${task.completed?"done":""}`}>
               {task.text}
               {task.dueAt && <small style={{marginLeft:8,color:"#475569"}}>(due {new Date(task.dueAt).toLocaleString()})</small>}
-              {task.remind && !task.notified && <small> � will remind</small>}
-              {task.remind && task.notified && <small> � reminded</small>}
-              {typeof task.pomos==="number" && task.pomos>0 && <small style={{marginLeft:8,color:"#475569"}}>� {task.pomos} pomos</small>}
+              {task.remind && !task.notified && <small> • will remind</small>}
+              {task.remind && task.notified && <small> • reminded</small>}
+              {typeof task.pomos==="number" && task.pomos>0 && <small style={{marginLeft:8,color:"#475569"}}> ⏱️ {task.pomos} pomos</small>}
             </span>
-            <select value={task.priority ?? "NN"} onChange={e=>p.setTaskPriority(task.id, e.target.value as Priority)} title="Eisenhower priority" style={{marginRight:8}}>
-              <option value="UI">UI</option><option value="UN">UN</option><option value="NI">NI</option><option value="NN">NN</option>
-            </select>
-            <button className={`pill ${p.activeTaskId===task.id?"active":""}`} onClick={()=>p.setActiveTaskId(p.activeTaskId===task.id?null:task.id)} title="Set as active for Pomodoro">?? Focus</button>
-            <button className="icon" onClick={()=>p.removeTask(task.id)} aria-label="Delete">?</button>
+            <div className="pill-group priority-pills" style={{marginRight:8}} title="Eisenhower priority">
+              {(["UI","UN","NI","NN"] as Priority[]).map(pr => (
+                <button key={pr} className={`pill small ${((task.priority ?? "NN")===pr)?"active":""}`}
+                  onClick={()=>p.setTaskPriority(task.id, pr)}>{pr}</button>
+              ))}
+            </div>
+            <button className={`pill ${p.activeTaskId===task.id?"active":""}`} onClick={()=>p.setActiveTaskId(p.activeTaskId===task.id?null:task.id)} title="Set as active for Pomodoro">🎯 Focus</button>
+            <button className="icon" onClick={()=>p.removeTask(task.id)} aria-label="Delete">🗑️</button>
           </li>
         ))}
       </ul>}
   </>
 );
 export default Home;
+

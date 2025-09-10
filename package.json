@@ -1,18 +1,24 @@
 {
   "name": "task-tracker-react-ts",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "dependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/react-router-dom": "^5.3.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.8.2",
-    "react-scripts": "5.0.1"
+    "react-router-dom": "^6.22.3",
+    "react-scripts": "5.0.1",
+    "typescript": "^5.4.0"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
@@ -33,10 +39,8 @@
     ]
   },
   "devDependencies": {
-    "@types/react": "^19.1.12",
-    "@types/react-dom": "^19.1.9",
-    "@vitejs/plugin-react": "^5.0.2",
-    "typescript": "^5.9.2",
-    "vite": "^7.1.5"
-  }
+    "@types/node": "^20.0.0",
+    "gh-pages": "^6.3.0"
+  },
+  "homepage": "https://Eskinder185.github.io/tasktracker"
 }

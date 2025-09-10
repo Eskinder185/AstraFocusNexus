@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import BreakSuggestions from "./BreakSuggestions";
 
 type Mode = "focus" | "short" | "long";
 
@@ -33,7 +34,7 @@ async function tryNotify(title: string, body: string) {
     try { await Notification.requestPermission(); } catch {}
   }
   if (Notification.permission === "granted") {
-    try { new Notification(title, { body, tag: "pomodoro-complete" }); return true; } catch {}
+    try { new Notification(title, { body, tag: "pomodoro" }); return true; } catch {}
   }
   return false;
 }
@@ -69,7 +70,8 @@ function vibrate() {
     try { navigator.vibrate([200, 100, 200]); } catch {}
   }
 }
-function flashTitleStart(store: React.MutableRefObject<string>, handle: React.MutableRefObject<number | null>) {
+// Clean title flasher (uses clear emoji and avoids encoding artifacts)
+function startTitleFlash(store: React.MutableRefObject<string>, handle: React.MutableRefObject<number | null>) {
   if (handle.current) return;
   store.current = document.title;
   let on = false;
@@ -89,9 +91,10 @@ function flashTitleStop(store: React.MutableRefObject<string>, handle: React.Mut
 type Props = {
   activeTaskTitle?: string;
   onFocusComplete?: () => void; // called when a focus session completes
+  onRunningChange?: (running: boolean) => void; // notify parent when running state changes
 };
 
-const PomodoroTimer: React.FC<Props> = ({ activeTaskTitle, onFocusComplete }) => {
+const PomodoroTimer: React.FC<Props> = ({ activeTaskTitle, onFocusComplete, onRunningChange }) => {
   const [settings, setSettings] = useState<PomodoroSettings>(() => {
     try {
       const raw = localStorage.getItem("pomodoro.settings");
@@ -107,6 +110,10 @@ const PomodoroTimer: React.FC<Props> = ({ activeTaskTitle, onFocusComplete }) =>
   const [endAt, setEndAt] = useState<number | null>(null);
   const [remaining, setRemaining] = useState<number>(settings.focusMin * 60_000);
   const [cycle, setCycle] = useState<number>(0); // completed focus sessions in current block
+  const [showBreakModal, setShowBreakModal] = useState<boolean>(false);
+  const [modalClosing, setModalClosing] = useState<boolean>(false);
+  const nextModeRef = useRef<Mode>("short");
+  const nextDurRef = useRef<number>(settings.shortMin * 60_000);
 
   // permission/bell state
   const [perm, setPerm] = useState<NotificationPermission | "unsupported">("default");
@@ -126,10 +133,13 @@ const PomodoroTimer: React.FC<Props> = ({ activeTaskTitle, onFocusComplete }) =>
     if (!("Notification" in window)) setPerm("unsupported");
     else setPerm(Notification.permission);
 
-    // tiny inline WAV so it works offline
-    audioRef.current = new Audio(
-      "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAAAACAAAAPGZmZmZmZmZm"
-    );
+    // tiny inline WAV so it works offline (attach to the existing <audio>)
+    try {
+      if (audioRef.current) {
+        audioRef.current.src =
+          "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAAAACAAAAPGZmZmZmZmZm";
+      }
+    } catch {}
   }, []);
 
   // compute target duration for current mode
@@ -142,7 +152,8 @@ const PomodoroTimer: React.FC<Props> = ({ activeTaskTitle, onFocusComplete }) =>
   // keep remaining in sync when mode/duration changes (if not running)
   useEffect(() => {
     if (!running) setRemaining(durationMs);
-  }, [durationMs, running]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [durationMs]);
 
   // main ticker
   useEffect(() => {
@@ -163,12 +174,12 @@ const PomodoroTimer: React.FC<Props> = ({ activeTaskTitle, onFocusComplete }) =>
             // 1) Web notification (if allowed)
             const title = "Focus complete ✅";
             const body = activeTaskTitle ? `Task: ${activeTaskTitle}` : "Take a break!";
-            const shown = await tryNotify(title, body);
+            await tryNotify(title, body);
 
             // 2) Secondary alerts (always try)
             playChime(audioRef);
             vibrate();
-            flashTitleStart(originalTitleRef, flasherRef);
+            startTitleFlash(originalTitleRef, flasherRef);
             // auto stop flashing after 20s
             window.setTimeout(() => flashTitleStop(originalTitleRef, flasherRef), 20_000);
 
@@ -181,17 +192,20 @@ const PomodoroTimer: React.FC<Props> = ({ activeTaskTitle, onFocusComplete }) =>
             setCycle((c) => c + 1);
             setMode(nextMode);
 
-            // prepare next session
+            // prepare next session but pause for suggestions
             const nextDur = (nextMode === "long" ? settings.longMin : settings.shortMin) * 60_000;
             setRemaining(nextDur);
-            if (settings.autoStartNext) start(nextDur);
+            nextModeRef.current = nextMode;
+            nextDurRef.current = nextDur;
+            setModalClosing(false);
+            setShowBreakModal(true);
           } else {
             // Break finished
             const title = mode === "short" ? "Short break over ☕" : "Long break over 🌿";
             await tryNotify(title, "Time to focus again!");
             playChime(audioRef);
             vibrate();
-            flashTitleStart(originalTitleRef, flasherRef);
+            startTitleFlash(originalTitleRef, flasherRef);
             window.setTimeout(() => flashTitleStop(originalTitleRef, flasherRef), 20_000);
 
             setMode("focus");
@@ -207,21 +221,31 @@ const PomodoroTimer: React.FC<Props> = ({ activeTaskTitle, onFocusComplete }) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running, endAt, mode, settings, cycle, activeTaskTitle]);
 
-  const start = (dur = durationMs) => {
+  const start = (dur?: number) => {
     // If user hasn't made a choice yet, ask once they start
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission().then((p) => setPerm(p));
     }
     flashTitleStop(originalTitleRef, flasherRef); // clear any previous flashing
-    setEndAt(Date.now() + dur);
+    const resumeMs = (typeof dur === 'number' ? dur : Math.max(0, remaining));
+    const nextMs = resumeMs > 0 ? resumeMs : durationMs;
+    setEndAt(Date.now() + nextMs);
     setRunning(true);
+    onRunningChange?.(true);
+    // Fire a start notification (best-effort so users get an immediate cue)
+    tryNotify(
+      mode === "focus" ? "Focus started" : mode === "short" ? "Short break started" : "Long break started",
+      activeTaskTitle ? `Task: ${activeTaskTitle}` : ""
+    );
   };
   const pause = () => setRunning(false);
+  useEffect(() => { onRunningChange?.(running); }, [running, onRunningChange]);
   const reset = () => {
     setRunning(false);
     setEndAt(null);
     setRemaining(durationMs);
     flashTitleStop(originalTitleRef, flasherRef);
+    onRunningChange?.(false);
   };
   const skip = () => {
     // force-complete current mode
@@ -245,10 +269,24 @@ const PomodoroTimer: React.FC<Props> = ({ activeTaskTitle, onFocusComplete }) =>
 
   const requestPermission = async () => {
     if (!("Notification" in window)) return alert("Notifications not supported.");
+    if (Notification.permission === "denied") {
+      setPerm("denied");
+      alert(
+        [
+          "Notifications are blocked for this site.",
+          "To enable: click the lock icon in the address bar → Site settings → Notifications → Allow.",
+        ].join("\n")
+      );
+      return;
+    }
     try {
       const res = await Notification.requestPermission();
       setPerm(res);
       if (res !== "granted") alert("Notifications denied.");
+      else {
+        // Show a quick test notification so the user can confirm it works
+        await tryNotify("Notifications enabled", "You'll get alerts at start and end.");
+      }
     } catch {
       alert("Could not request notifications.");
     }
@@ -278,7 +316,7 @@ const PomodoroTimer: React.FC<Props> = ({ activeTaskTitle, onFocusComplete }) =>
         </div>
 
         {/* Bell shows state: 🔕 (not granted) / 🔔 (granted) */}
-        <button className="pill" onClick={requestPermission} title="Enable notifications">
+        <button className="pill" onClick={requestPermission} title="Enable notifications" disabled={perm === "unsupported"}>
           {perm === "granted" ? "🔔" : "🔕"}
         </button>
       </div>
@@ -289,7 +327,24 @@ const PomodoroTimer: React.FC<Props> = ({ activeTaskTitle, onFocusComplete }) =>
         </div>
       )}
 
-      <div className="pomodoro__timer">{format(remaining)}</div>
+      <div className="pomodoro__timer">
+        <svg className="pomo-ring" width="120" height="120" viewBox="0 0 120 120" aria-hidden>
+          {(() => {
+            const r = 52; const cx = 60; const cy = 60; const c = 2 * Math.PI * r;
+            const denom = Math.max(1, durationMs);
+            const frac = Math.max(0, Math.min(1, remaining / denom));
+            const off = c * frac;
+            return (
+              <g>
+                <circle className="ring-bg" cx={cx} cy={cy} r={r} />
+                <circle className="ring-fg" cx={cx} cy={cy} r={r}
+                  style={{ strokeDasharray: `${c}px`, strokeDashoffset: `${off}px` }} />
+              </g>
+            );
+          })()}
+        </svg>
+        <div className="pomo-time">{format(remaining)}</div>
+      </div>
 
       <div className="pomodoro__controls">
         {!running ? (
@@ -333,6 +388,34 @@ const PomodoroTimer: React.FC<Props> = ({ activeTaskTitle, onFocusComplete }) =>
           <div className="muted">Completed in block: {cycle}</div>
         </div>
       </details>
+
+      {showBreakModal && (
+        <BreakSuggestions
+          closing={modalClosing}
+          onStartBreak={() => {
+            setModalClosing(true);
+            setTimeout(() => {
+              setShowBreakModal(false);
+              setModalClosing(false);
+              // start the prepared break
+              setMode(nextModeRef.current);
+              start(nextDurRef.current);
+            }, 180);
+          }}
+          onSkipBreak={() => {
+            setModalClosing(true);
+            setTimeout(() => {
+              setShowBreakModal(false);
+              setModalClosing(false);
+              // jump to next focus session immediately
+              const dur = settings.focusMin * 60_000;
+              setMode("focus");
+              setRemaining(dur);
+              start(dur);
+            }, 180);
+          }}
+        />
+      )}
     </div>
   );
 };
