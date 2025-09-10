@@ -1,4 +1,4 @@
-/* --- Neon Cyber Theme + Glow Animations --- */
+﻿/* --- Neon Cyber Theme + Glow Animations --- */
 * { box-sizing: border-box; }
 
 :root{
@@ -69,7 +69,7 @@ body::after{
   background: rgba(11,16,32,.8);
 }
 
-/* Buttons, chips, pills – all glow */
+/* Buttons, chips, pills â€“ all glow */
 .btn, .pill, .chip, .icon{
   position:relative;
   padding:10px 14px;
@@ -101,7 +101,7 @@ body::after{
   animation: glowPulse 2.2s ease-in-out infinite;
 }
 
-/* subtle outline “ring” behind buttons */
+/* subtle outline â€œringâ€ behind buttons */
 .btn::after, .pill::after, .chip::after{
   content:""; position:absolute; inset:-6px; border-radius: inherit;
   background: radial-gradient(40% 60% at 50% 50%, rgba(0,229,255,.35), transparent 60%),
@@ -218,7 +218,7 @@ body{
   background: linear-gradient(90deg, rgba(0,229,255,.12), rgba(124,77,255,.12));
 }
 
-/* Optional: subtle “float” of cards */
+/* Optional: subtle â€œfloatâ€ of cards */
 .card, .item {
   transition: transform .25s ease, box-shadow .25s ease;
 }
@@ -226,3 +226,118 @@ body{
   transform: translateY(-2px);
   box-shadow: 0 6px 28px rgba(0,0,0,.25), 0 0 22px rgba(124,77,255,.2);
 }
+/* === Phase 1 & 2 UI bits === */
+.emoji-btn{
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.12);
+  width: 40px; height: 40px; border-radius: 10px;
+  font-size: 22px; cursor: pointer;
+  transition: transform .08s ease;
+}
+.emoji-btn:active{ transform: scale(.96); }
+
+.tip{
+  background: rgba(0,0,0,.25);
+  border: 1px dashed rgba(255,255,255,.12);
+  padding: 8px 10px; border-radius: 10px;
+}
+
+.goals{ list-style:none; padding:0; margin:10px 0 0 0; display:flex; flex-direction: column; gap:8px;}
+.goals .goal-emoji{ font-size:18px; margin-right:6px;}
+.goals .goal-title{ font-weight:600; margin-right:8px;}
+.goals .goal-stat{ margin-left:6px; font-size:12px; opacity:.8; }
+.goals .bar{ flex:1; height:8px; border-radius:999px; background:rgba(255,255,255,.1); overflow:hidden; margin:0 8px;}
+.goals .fill{ height:100%; background: var(--accent); }
+
+.matrix{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 12px;
+}
+.matrix-cell{
+  border: 2px solid rgba(255,255,255,.2);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(0,0,0,.2);
+  backdrop-filter: blur(8px);
+}
+.matrix-title{ font-size: 12px; opacity: .8; margin-bottom: 6px; }
+
+@media (max-width: 720px){
+  .matrix{ grid-template-columns: 1fr; }
+}
+/* Nav + FAQ + Matrix bits */
+.nav{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;margin-bottom:.6rem;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);border-radius:12px;backdrop-filter:blur(8px);}
+.nav__brand{font-weight:700;letter-spacing:.2px}.nav__brand span{color:var(--accent)}
+.nav__links{display:flex;gap:10px;align-items:center}
+.nav__link{padding:.35rem .6rem;border-radius:999px;border:1px solid transparent}
+.nav__link:hover{border-color:rgba(255,255,255,.2)}
+.nav__link.active{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2)}
+
+details.faq{border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:.5rem .75rem;margin:.4rem 0}
+details.faq summary{cursor:pointer}
+details.faq[open]{background:rgba(0,0,0,.2)}
+
+.emoji-btn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);width:40px;height:40px;border-radius:10px;font-size:22px;cursor:pointer;transition:transform .08s ease;}
+.emoji-btn:active{transform:scale(.96)}
+.tip{background:rgba(0,0,0,.25);border:1px dashed rgba(255,255,255,.12);padding:8px 10px;border-radius:10px;}
+
+.matrix{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:12px}
+.matrix-cell{border:2px solid rgba(255,255,255,.2);border-radius:12px;padding:10px;background:rgba(0,0,0,.2);backdrop-filter:blur(8px)}
+.matrix-title{font-size:12px;opacity:.8;margin-bottom:6px}
+@media (max-width:720px){.matrix{grid-template-columns:1fr}}
+/* High-contrast, animated page titles */
+.page-header { margin-bottom: .5rem; }
+.page-title {
+  display: flex; align-items: center; gap: 10px;
+  font-size: clamp(1.4rem, 2.8vw, 2.2rem);
+  line-height: 1.2;
+  color: #f8fafc;
+  text-shadow: 0 1px 0 rgba(0,0,0,.4);
+}
+.page-icon { font-size: 1.3em; }
+.title-anim {
+  background: linear-gradient(90deg, #e2e8f0, var(--accent), #e2e8f0);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+@keyframes shimmer { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
+.page-subtitle { margin: .1rem 0 .6rem; opacity: .85; }
+
+/* Icon button (bell, email) */
+.icon-btn{
+  background: transparent; border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px; padding: .3rem .6rem; cursor: pointer;
+}
+.icon-btn:hover{ background: rgba(255,255,255,.1); }
+.nav__owner{ font-size: 12px; opacity: .8; }
+
+/* Wellness visible controls */
+.wellness-row{ display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+.mood-group .label, .stress-group .label{ font-size:12px; opacity:.8; margin-bottom:6px; }
+.mood-choices{ display:flex; gap:10px; }
+.emoji-big{
+  width:56px; height:56px; border-radius:14px; font-size:28px;
+  background: rgba(255,255,255,.05); border:2px solid rgba(255,255,255,.12);
+  cursor:pointer; transition:transform .08s ease, border-color .2s ease;
+}
+.emoji-big.selected{ border-color: var(--accent); transform: translateY(-1px); }
+.stress-group input[type="range"]{ width: 260px; }
+.stress-scale{ display:flex; justify-content:space-between; width:260px; font-size:18px; margin-top:4px; }
+.tip-actions{ display:flex; gap:8px; margin-top:8px; }
+
+/* Goals symbols grid */
+.emoji-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap:6px; max-width:320px; }
+.emoji-pick{
+  width:40px; height:40px; border-radius:10px; font-size:20px; cursor:pointer;
+  border:1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.05);
+}
+.emoji-pick.selected{ border-color: var(--accent); background: rgba(255,255,255,.12); }
+.goal-input-row{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+
+/* Make legacy titles more visible */
+.title, .card h2 { color: #f8fafc; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
+
+
