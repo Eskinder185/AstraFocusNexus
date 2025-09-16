@@ -289,8 +289,301 @@ body{
 }
 .matrix-title{ font-size: 12px; opacity: .8; margin-bottom: 6px; }
 
-@media (max-width: 720px){
-  .matrix{ grid-template-columns: 1fr; }
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  /* Container adjustments */
+  .container { 
+    max-width: 100%; 
+    margin: 16px auto; 
+    padding: 0 12px; 
+  }
+  
+  /* Navigation mobile layout */
+  .nav {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .nav__links {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+  
+  .nav__link {
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+  
+  .nav__owner {
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  
+  /* Title adjustments */
+  .title {
+    font-size: 28px;
+    margin-bottom: 12px;
+  }
+  
+  /* Card and input adjustments */
+  .card {
+    padding: 12px;
+    margin: 12px 0;
+  }
+  
+  .input {
+    min-width: 100%;
+    padding: 12px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Row layout for mobile */
+  .row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  /* Button adjustments */
+  .btn, .pill, .chip {
+    padding: 12px 16px;
+    font-size: 14px;
+    min-height: 44px; /* Touch-friendly minimum */
+  }
+  
+  .pill.small {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  /* Task items mobile layout */
+  .item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 12px;
+  }
+  
+  .item .text {
+    margin-bottom: 8px;
+  }
+  
+  .item .pill-group {
+    justify-content: center;
+    margin: 0;
+  }
+  
+  /* Controls mobile layout */
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .filters {
+    justify-content: center;
+  }
+  
+  .meta {
+    text-align: center;
+  }
+  
+  /* Pomodoro mobile adjustments */
+  .pomodoro__timer {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .pomodoro__timer .pomo-time {
+    font-size: 24px;
+  }
+  
+  .pomodoro__controls {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .pomodoro__modes {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  /* Matrix mobile layout */
+  .matrix { 
+    grid-template-columns: 1fr; 
+    gap: 8px;
+  }
+  
+  .matrix-cell {
+    padding: 12px;
+  }
+  
+  /* Wellness mobile layout */
+  .wellness-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .mood-choices {
+    justify-content: center;
+  }
+  
+  .stress-group input[type="range"] {
+    width: 100%;
+    max-width: 280px;
+  }
+  
+  .stress-scale {
+    width: 100%;
+    max-width: 280px;
+    justify-content: space-between;
+  }
+  
+  /* Goals mobile layout */
+  .emoji-grid {
+    grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+    max-width: 100%;
+  }
+  
+  .goal-input-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  /* Modal mobile adjustments */
+  .modal {
+    width: 95vw;
+    margin: 20px;
+    padding: 16px;
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  /* Touch-friendly interactions */
+  .icon, .icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Prevent text selection on buttons */
+  .btn, .pill, .chip, .icon, .icon-btn {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Improve touch targets */
+  input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+  }
+  
+  /* Better spacing for mobile */
+  .page-header {
+    margin-bottom: 16px;
+  }
+  
+  .page-title {
+    font-size: 24px;
+    text-align: center;
+  }
+  
+  .page-subtitle {
+    text-align: center;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .container {
+    padding: 0 8px;
+  }
+  
+  .nav {
+    padding: 8px;
+  }
+  
+  .nav__links {
+    gap: 4px;
+  }
+  
+  .nav__link {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+  
+  .title {
+    font-size: 24px;
+  }
+  
+  .card {
+    padding: 10px;
+  }
+  
+  .input {
+    padding: 10px;
+  }
+  
+  .btn, .pill, .chip {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .pomodoro__timer {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .pomodoro__timer .pomo-time {
+    font-size: 20px;
+  }
+  
+  .emoji-grid {
+    grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
+  }
+  
+  .emoji-big {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+  }
+}
+
+/* Landscape mobile adjustments */
+@media (max-width: 768px) and (orientation: landscape) {
+  .container {
+    margin: 8px auto;
+  }
+  
+  .nav {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  
+  .nav__links {
+    flex-wrap: nowrap;
+  }
+  
+  .pomodoro__timer {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .pomodoro__timer .pomo-time {
+    font-size: 18px;
+  }
 }
 /* Nav + FAQ + Matrix bits */
 .nav{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;margin-bottom:.6rem;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);border-radius:12px;backdrop-filter:blur(8px);}
@@ -479,5 +772,87 @@ details.faq[open]{background:rgba(0,0,0,.2)}
 
 /* Make legacy titles more visible */
 .title, .card h2 { color: #f8fafc; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
+
+/* Touch and mobile optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Touch device optimizations */
+  .btn:hover, .pill:hover, .chip:hover, .icon:hover {
+    transform: none;
+    box-shadow: 0 0 12px rgba(0,229,255,.25);
+  }
+  
+  .card:hover, .item:hover {
+    transform: none;
+    box-shadow: 0 0 12px rgba(0,0,0,.15);
+  }
+  
+  /* Larger touch targets */
+  .btn, .pill, .chip, .icon, .icon-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better touch feedback */
+  .btn:active, .pill:active, .chip:active, .icon:active {
+    transform: scale(0.95);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* Prevent zoom on input focus (iOS) */
+input[type="text"], input[type="datetime-local"], input[type="number"] {
+  font-size: 16px;
+}
+
+/* Better scroll behavior */
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Improve text selection */
+::selection {
+  background: rgba(0,229,255,.3);
+  color: var(--fg);
+}
+
+/* Better focus indicators for accessibility */
+.btn:focus, .pill:focus, .chip:focus, .icon:focus, .input:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Loading states for better UX */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Better spacing for touch devices */
+@media (max-width: 768px) {
+  /* Ensure adequate spacing between interactive elements */
+  .btn + .btn, .pill + .pill, .chip + .chip {
+    margin-left: 8px;
+  }
+  
+  /* Better list spacing */
+  .list .item + .item {
+    margin-top: 8px;
+  }
+  
+  /* Improve readability */
+  .text {
+    line-height: 1.5;
+  }
+  
+  /* Better form layout */
+  label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+}
 
 
