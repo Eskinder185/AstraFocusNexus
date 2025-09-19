@@ -301,9 +301,15 @@ body{
   /* Navigation mobile layout */
   .nav {
     flex-direction: column;
-    gap: 8px;
-    padding: 12px;
+    gap: 10px;
+    padding: 12px 16px;
     margin-bottom: 12px;
+    border-radius: 12px;
+  }
+  
+  .nav__brand {
+    font-size: 1.1rem;
+    text-align: center;
   }
   
   .nav__links {
@@ -313,13 +319,16 @@ body{
   }
   
   .nav__link {
-    padding: 6px 10px;
+    padding: 8px 12px;
     font-size: 14px;
+    font-weight: 500;
   }
   
   .nav__owner {
     font-size: 11px;
     margin-top: 4px;
+    color: #94a3b8;
+    text-align: center;
   }
   
   /* Title adjustments */
@@ -585,13 +594,81 @@ body{
     font-size: 18px;
   }
 }
-/* Nav + FAQ + Matrix bits */
-.nav{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;margin-bottom:.6rem;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);border-radius:12px;backdrop-filter:blur(8px);}
-.nav__brand{font-weight:700;letter-spacing:.2px}.nav__brand span{color:var(--accent)}
-.nav__links{display:flex;gap:10px;align-items:center}
-.nav__link{padding:.35rem .6rem;border-radius:999px;border:1px solid transparent}
-.nav__link:hover{border-color:rgba(255,255,255,.2)}
-.nav__link.active{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2)}
+/* Enhanced Navigation Bar */
+.nav{
+  position:sticky;top:0;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.8rem 1.2rem;margin-bottom:.8rem;
+  background: linear-gradient(135deg, rgba(8,11,18,.95), rgba(11,16,32,.9));
+  border:1px solid rgba(0,229,255,.2);
+  border-radius:16px;
+  backdrop-filter:blur(12px);
+  box-shadow: 0 4px 20px rgba(0,0,0,.3), 0 0 20px rgba(0,229,255,.1);
+}
+
+.nav__brand{
+  font-weight:800;letter-spacing:.3px;
+  font-size:1.2rem;
+  background: linear-gradient(90deg, #00e5ff, #7c4dff 60%, #14f195);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow: 0 0 20px rgba(0,229,255,.3);
+  filter: drop-shadow(0 0 8px rgba(124,77,255,.2));
+}
+
+.nav__brand span{
+  color: var(--accent);
+  text-shadow: 0 0 12px rgba(20,241,149,.4);
+}
+
+.nav__links{
+  display:flex;gap:8px;align-items:center;
+  flex-wrap:wrap;
+}
+
+.nav__link{
+  padding:.5rem .8rem;border-radius:999px;
+  border:1px solid transparent;
+  color: #e2e8f0;
+  font-weight:500;
+  font-size:.9rem;
+  transition: all .2s ease;
+  text-decoration:none;
+  position:relative;
+  overflow:hidden;
+}
+
+.nav__link::before{
+  content:"";
+  position:absolute;
+  top:0;left:0;right:0;bottom:0;
+  background: linear-gradient(90deg, rgba(0,229,255,.1), rgba(124,77,255,.1));
+  opacity:0;
+  transition: opacity .2s ease;
+  border-radius:inherit;
+}
+
+.nav__link:hover{
+  border-color:rgba(0,229,255,.4);
+  color: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,229,255,.2);
+}
+
+.nav__link:hover::before{
+  opacity:1;
+}
+
+.nav__link.active{
+  background: linear-gradient(90deg, rgba(0,229,255,.15), rgba(124,77,255,.15));
+  border-color:rgba(0,229,255,.6);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(0,229,255,.3);
+  font-weight:600;
+}
+
+.nav__link.active::before{
+  opacity:1;
+}
 
 details.faq{border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:.5rem .75rem;margin:.4rem 0}
 details.faq summary{cursor:pointer}
@@ -723,13 +800,60 @@ details.faq[open]{background:rgba(0,0,0,.2)}
   color:#0b1220; border-color:#7c4dff; background:#ede9fe;
 }
 
-/* Light theme: nav bar and links for readability */
-.theme-light .nav{ background: rgba(255,255,255,.78); border-color:#e5e7eb; }
-.theme-light .nav__link{ color: var(--fg); }
-.theme-light .nav__link.active{ background: rgba(0,0,0,.06); border-color:#cbd5e1; }
-.theme-light .nav__link:hover{ border-color:#cbd5e1; }
-.theme-light .icon-btn, .theme-light .theme-toggle{ border-color:#cbd5e1; }
-.theme-light .icon-btn:hover, .theme-light .theme-toggle:hover{ background: rgba(0,0,0,.06); }
+/* Light theme: Enhanced nav bar and links for readability */
+.theme-light .nav{ 
+  background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(248,250,252,.9));
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 20px rgba(0,0,0,.1), 0 0 20px rgba(124,77,255,.05);
+}
+
+.theme-light .nav__brand{
+  background: linear-gradient(90deg, #0ea5e9, #7c3aed 60%, #059669);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow: none;
+  filter: none;
+}
+
+.theme-light .nav__brand span{
+  color: #059669;
+  text-shadow: none;
+}
+
+.theme-light .nav__link{ 
+  color: #374151;
+  font-weight: 500;
+}
+
+.theme-light .nav__link::before{
+  background: linear-gradient(90deg, rgba(14,165,233,.1), rgba(124,58,237,.1));
+}
+
+.theme-light .nav__link:hover{ 
+  border-color: #94a3b8;
+  color: #111827;
+  box-shadow: 0 4px 12px rgba(0,0,0,.1);
+}
+
+.theme-light .nav__link.active{ 
+  background: linear-gradient(90deg, rgba(14,165,233,.1), rgba(124,58,237,.1));
+  border-color: #7c3aed;
+  color: #111827;
+  box-shadow: 0 0 16px rgba(124,58,237,.2);
+}
+
+.theme-light .nav__owner{
+  color: #6b7280;
+}
+
+.theme-light .icon-btn, .theme-light .theme-toggle{ 
+  border-color: #cbd5e1;
+  color: #374151;
+}
+
+.theme-light .icon-btn:hover, .theme-light .theme-toggle:hover{ 
+  background: rgba(0,0,0,.06);
+  border-color: #94a3b8;
+}
 
 /* Light theme: page titles remain vivid */
 .theme-light .title, .theme-light .page-title{ color: #0b1220; text-shadow: none; }
@@ -829,6 +953,32 @@ html {
   transform: none;
 }
 
+/* About page feature items */
+.feature-item {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: all 0.2s ease;
+}
+
+.feature-item:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(0,229,255,0.2);
+  transform: translateY(-1px);
+}
+
+/* Light theme feature items */
+.theme-light .feature-item {
+  background: rgba(0,0,0,0.02);
+  border-color: rgba(0,0,0,0.05);
+}
+
+.theme-light .feature-item:hover {
+  background: rgba(0,0,0,0.05);
+  border-color: rgba(0,0,0,0.1);
+}
+
 /* Better spacing for touch devices */
 @media (max-width: 768px) {
   /* Ensure adequate spacing between interactive elements */
@@ -852,6 +1002,11 @@ html {
     align-items: center;
     gap: 8px;
     margin-bottom: 8px;
+  }
+  
+  /* About page mobile adjustments */
+  .feature-item {
+    padding: 10px;
   }
 }
 

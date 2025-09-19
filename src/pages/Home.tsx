@@ -13,7 +13,7 @@ interface Props{
 
 const Home:React.FC<Props>= (p) => (
   <>
-    <h1 className="title">Task Tracker <span className="badge">✨</span></h1>
+    <h1 className="title">AstraFocusNexus <span className="badge">✨</span></h1>
     <div className="card">
       <div className="row" style={{gap:8,flexWrap:"wrap"}}>
         <input className="input" value={p.input} placeholder="Enter a task"
