@@ -1,5 +1,5 @@
 {
-  "name": "AstraFocusNexus",
+  "name": "astrafocusnexus",
   "version": "0.2.0",
   "private": true,
   "dependencies": {
@@ -42,5 +42,18 @@
     "@types/node": "^20.0.0",
     "gh-pages": "^6.3.0"
   },
-  "homepage": "https://Eskinder185.github.io/AstraFocusNexus"
+  "homepage": "https://Eskinder185.github.io/AstraFocusNexus",
+  "description": "A minimal Task Tracker built with **React 18** and **TypeScript** (Create React App style).",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Eskinder185/tasktracker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Eskinder185/tasktracker/issues"
+  }
 }
