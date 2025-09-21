@@ -8,7 +8,7 @@
 AstraFocusNexus is a lightweight, fast front-end app for focus, goals, and quick dashboards.  
 It’s designed to be simple: clear UI, fast loads, and no extra noise.
 
-> 🔗 **Live:** https://eskinder185.github.io/AstraFocusNexus/
+> 🔗 **Live:** [https://eskinder185.github.io/AstraFocusNexus/](https://eskinder185.github.io/AstraFocusNexus/)
 
 ---
 
