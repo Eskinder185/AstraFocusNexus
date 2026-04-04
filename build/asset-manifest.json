@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/AstraFocusNexus/static/css/main.ef3e6c8f.css",
-    "main.js": "/AstraFocusNexus/static/js/main.9700538d.js",
+    "main.css": "/AstraFocusNexus/static/css/main.da6f9a6a.css",
+    "main.js": "/AstraFocusNexus/static/js/main.876af965.js",
     "index.html": "/AstraFocusNexus/index.html",
-    "main.ef3e6c8f.css.map": "/AstraFocusNexus/static/css/main.ef3e6c8f.css.map",
-    "main.9700538d.js.map": "/AstraFocusNexus/static/js/main.9700538d.js.map"
+    "main.da6f9a6a.css.map": "/AstraFocusNexus/static/css/main.da6f9a6a.css.map",
+    "main.876af965.js.map": "/AstraFocusNexus/static/js/main.876af965.js.map"
   },
   "entrypoints": [
-    "static/css/main.ef3e6c8f.css",
-    "static/js/main.9700538d.js"
+    "static/css/main.da6f9a6a.css",
+    "static/js/main.876af965.js"
   ]
 }

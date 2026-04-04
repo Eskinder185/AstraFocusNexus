@@ -1,40 +1,94 @@
 import React from "react";
 import PageHeader from "../components/PageHeader";
 
+const items: { id: string; question: string; answer: React.ReactNode }[] = [
+  {
+    id: "reminders",
+    question: "How do reminders work?",
+    answer: (
+      <>
+        Enable notifications (bell in the nav), set a due date on a task, and turn on <strong>Remind me at due time</strong>.
+        The app checks periodically and sends a notification when the due time passes (if your browser allows it).
+      </>
+    ),
+  },
+  {
+    id: "no-notification",
+    question: "Why didn’t I get a notification?",
+    answer: (
+      <>
+        Confirm the bell shows alerts are allowed in your browser. Some systems only notify when the tab is open or was
+        recently active. See <strong>About → Privacy &amp; technical details → Notifications</strong> for more.
+      </>
+    ),
+  },
+  {
+    id: "export",
+    question: "Can I export my data?",
+    answer: (
+      <>
+        Today you can copy from your browser’s storage tools or back up by keeping this device. A one-click export could be
+        added later if there’s demand.
+      </>
+    ),
+  },
+  {
+    id: "matrix",
+    question: "What’s the Eisenhower Matrix?",
+    answer: (
+      <>
+        It groups work by urgency and importance. Do <em>Urgent + Important</em> first; schedule <em>Not Urgent + Important</em>{" "}
+        next; delegate or shorten <em>Urgent + Not Important</em>; trim <em>Neither</em> when you’re overloaded.
+      </>
+    ),
+  },
+  {
+    id: "goals",
+    question: "How are goals used?",
+    answer: (
+      <>
+        Create a goal on the Goals page, optionally set it as the default for new tasks, then add tasks on Home. Progress bars
+        show how many linked tasks are done.
+      </>
+    ),
+  },
+];
+
 const Faq: React.FC = () => {
   return (
-    <div className="card">
-      <PageHeader icon="❓" title="FAQ" subtitle="Answers to common questions" />
-
-      <section style={{marginBottom:12}}>
-        <details className="faq">
-          <summary>How do reminders work?</summary>
-          <p>Enable notifications (bell icon), set a due date, and toggle “Remind me”. The app checks about every 30 seconds and notifies when due.</p>
-        </details>
-
-        <details className="faq">
-          <summary>Why didn’t I get a notification?</summary>
-          <p>Ensure you clicked the bell and your browser shows “Allowed”. Some platforms only notify when the page is open or recently active.</p>
-        </details>
-
-        <details className="faq">
-          <summary>Can I export my data?</summary>
-          <p>You can copy values from your browser’s localStorage or add a simple export button later. Ask and I’ll wire one up.</p>
-        </details>
-
-        <details className="faq">
-          <summary>What’s the Eisenhower Matrix?</summary>
-          <p>Organize by urgency and importance. Do <em>Urgent + Important</em> first; schedule <em>Not Urgent + Important</em> next.</p>
-        </details>
-
-        <details className="faq">
-          <summary>How are goals used?</summary>
-          <p>Create a goal, then attach new tasks to it. Progress bars show completed vs total tasks per goal.</p>
-        </details>
+    <>
+      <PageHeader
+        icon="❓"
+        title="FAQ"
+        subtitle="Quick answers about reminders, the matrix, goals, and how your data stays local."
+      />
+      <section className="card faq-page" aria-labelledby="faq-intro">
+        <p id="faq-intro" className="faq-intro">
+          Browse the questions below. Each row expands in place—your place in the list stays put.
+        </p>
+        <h2 className="visually-hidden">
+          Questions
+        </h2>
+        <ul className="faq-list">
+          {items.map(entry => (
+            <li key={entry.id} className="faq-list__item">
+              <details className="faq">
+                <summary className="faq__summary">
+                  <span className="faq__question">{entry.question}</span>
+                  <span className="faq__chevron" aria-hidden>
+                    ▼
+                  </span>
+                </summary>
+                <div className="faq__panel">
+                  <div className="faq__answer">{entry.answer}</div>
+                </div>
+              </details>
+            </li>
+          ))}
+        </ul>
       </section>
-    </div>
+    </>
   );
 };
 
 export default Faq;
-

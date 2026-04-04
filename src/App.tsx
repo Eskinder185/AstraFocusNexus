@@ -1,10 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import LiveBackground from "./LiveBackground";
-import PomodoroTimer from "./PomodoroTimer";
+import MiniPomodoroBar from "./components/MiniPomodoroBar";
 import Nav from "./components/Nav";
+import SiteFooter from "./components/SiteFooter";
+import PageHeader from "./components/PageHeader";
+import ToolSection from "./components/ToolSection";
+import { AppToastProvider, useAppToast } from "./context/AppToast";
+import { PomodoroProvider } from "./context/PomodoroContext";
 import { celebrate } from "./utils/celebrate";
 import Home from "./pages/Home";
+import Focus from "./pages/Focus";
 import Wellness from "./pages/Wellness";
 import Matrix from "./pages/Matrix";
 import Goals from "./pages/Goals";
@@ -46,7 +52,8 @@ const todayKey = () => {
   return `${WELLNESS_PREFIX}${yyyy}-${mm}-${dd}`;
 };
 
-const App: React.FC = () => {
+const AppShell: React.FC = () => {
+  const { showToast } = useAppToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [input, setInput] = useState("");
   const [dueAt, setDueAt] = useState<string>("");
@@ -54,19 +61,16 @@ const App: React.FC = () => {
   const [filter, setFilter] = useState<Filter>("all");
   const [activeTaskId, setActiveTaskId] = useState<number | null>(null);
 
-  // Wellness
   const [mood, setMood] = useState<number>(3);
   const [stress, setStress] = useState<number>(3);
 
-  // Goals + Priority
   const [goals, setGoals] = useState<Goal[]>([]);
   const [goalTitle, setGoalTitle] = useState("");
   const [goalEmoji, setGoalEmoji] = useState("🎯");
   const [goalPref, setGoalPref] = useState<number | null>(null);
   const [priorityPref, setPriorityPref] = useState<Priority>("UI");
-  const [pomoRunning, setPomoRunning] = useState<boolean>(false);
+  const [, setPomoRunning] = useState<boolean>(false);
 
-  // Load from localStorage
   useEffect(() => {
     const raw = localStorage.getItem(TASKS_KEY);
     if (raw) try { setTasks(JSON.parse(raw)); } catch {}
@@ -90,16 +94,18 @@ const App: React.FC = () => {
     localStorage.setItem(k, JSON.stringify({ date: k.replace(WELLNESS_PREFIX, ""), mood, stress }));
   }, [mood, stress]);
 
-  // Gentle nudge (~50m idle)
   const lastActiveRef = useRef<number>(Date.now());
   useEffect(() => {
-    const onActive = () => lastActiveRef.current = Date.now();
+    const onActive = () => { lastActiveRef.current = Date.now(); };
     window.addEventListener("mousemove", onActive);
     window.addEventListener("keydown", onActive);
     window.addEventListener("click", onActive);
     const iv = window.setInterval(() => {
       if (Date.now() - lastActiveRef.current >= 50 * 60_000) {
-        alert("Time to rest your eyes 🚶 — take 5 minutes.");
+        showToast("You’ve been quiet a while—rest your eyes for a few minutes or stretch. 🚶", {
+          tone: "warning",
+          durationMs: 14_000,
+        });
         lastActiveRef.current = Date.now();
       }
     }, 30_000);
@@ -109,9 +115,8 @@ const App: React.FC = () => {
       window.removeEventListener("keydown", onActive);
       window.removeEventListener("click", onActive);
     };
-  }, []);
+  }, [showToast]);
 
-  // Task ops
   const addTask = () => {
     const text = input.trim();
     if (!text) return;
@@ -140,10 +145,7 @@ const App: React.FC = () => {
       willComplete = !!target && !target.completed;
       return prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
     });
-    if (willComplete) {
-      // small celebration when a task is completed
-      celebrate();
-    }
+    if (willComplete) celebrate();
   };
 
   const removeTask = (id: number) => {
@@ -157,7 +159,6 @@ const App: React.FC = () => {
   const setTaskPriority = (id: number, p: Priority) =>
     setTasks(prev => prev.map(t => t.id === id ? { ...t, priority: p } : t));
 
-  // Derived
   const remaining = useMemo(() => tasks.filter(t => !t.completed).length, [tasks]);
   const filteredTasks = useMemo(
     () => filter === "active"
@@ -167,16 +168,17 @@ const App: React.FC = () => {
       : tasks,
     [tasks, filter]
   );
-  const activeTaskTitle = tasks.find(t => t.id === activeTaskId)?.text;
+  const activeTaskTitle = tasks.find(t => t.id === activeTaskId)?.text ?? null;
 
-  // Notifications
   const requestPermission = async () => {
     if (!("Notification" in window)) {
-      alert("Notifications not supported.");
+      showToast("This browser doesn’t support notifications.", { tone: "warning" });
       return;
     }
     const perm = await Notification.requestPermission();
-    if (perm !== "granted") alert("Notification permission denied.");
+    if (perm !== "granted") {
+      showToast("Notifications weren’t enabled. You can try again from the nav bell.", { tone: "warning" });
+    }
   };
 
   const showReminder = (task: Task) => {
@@ -207,33 +209,31 @@ const App: React.FC = () => {
   }, [tasks]);
 
   const suggestBreakdown = () => {
-    const t = tasks.find(t => !t.completed);
-    if (t) alert(`Try this: Write 3 micro-steps for "${t.text}" and do the first in 2 minutes.`);
-    else alert("Add a task first, then break it into 3 micro-steps.");
+    const t = tasks.find(x => !x.completed);
+    if (t) {
+      showToast(`Try jotting three tiny steps for “${t.text}”, then do the first within two minutes.`);
+    } else {
+      showToast("Add a task on Home first—then you can break it into three steps.", { tone: "warning" });
+    }
   };
 
   return (
-    <HashRouter>
+    <PomodoroProvider
+      activeTaskTitle={activeTaskTitle}
+      onFocusComplete={() => {
+        if (activeTaskId == null) return;
+        setTasks(prev =>
+          prev.map(x =>
+            x.id === activeTaskId ? { ...x, pomos: (x.pomos ?? 0) + 1 } : x
+          )
+        );
+      }}
+      onRunningChange={setPomoRunning}
+    >
       <LiveBackground />
       <Nav />
+      <MiniPomodoroBar />
       <div className="container">
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>Pomodoro</h2>
-          <PomodoroTimer
-            activeTaskTitle={activeTaskTitle}
-            onRunningChange={setPomoRunning}
-            onFocusComplete={() => {
-              if (activeTaskId == null) return;
-              setTasks(prev =>
-                prev.map(t => t.id === activeTaskId
-                  ? { ...t, pomos: (t.pomos ?? 0) + 1 }
-                  : t
-                )
-              );
-            }}
-          />
-        </div>
-
         <Routes>
           <Route path="/" element={
             <Home
@@ -249,9 +249,9 @@ const App: React.FC = () => {
               clearCompleted={clearCompleted} remaining={remaining}
               priorityPref={priorityPref} setPriorityPref={setPriorityPref}
               setTaskPriority={setTaskPriority}
-              pomoRunning={pomoRunning}
             />
           } />
+          <Route path="/focus" element={<Focus />} />
           <Route path="/wellness" element={
             <Wellness
               mood={mood} setMood={setMood}
@@ -260,10 +260,20 @@ const App: React.FC = () => {
             />
           } />
           <Route path="/matrix" element={
-            <div className="card">
-              <h2 style={{ marginTop: 0 }}>Eisenhower Matrix</h2>
-              <Matrix tasks={tasks} toggleTask={toggleTask} setTaskPriority={setTaskPriority} />
-            </div>
+            <>
+              <PageHeader
+                icon="🧭"
+                title="Matrix"
+                subtitle="Sort work by urgency and importance so you start with what actually matters."
+              />
+              <ToolSection
+                title="Priority map"
+                lede="Each quadrant matches the Eisenhower labels on Home. Open tasks can be moved with the quadrant buttons."
+                cardClassName="tool-section__card--matrix"
+              >
+                <Matrix tasks={tasks} toggleTask={toggleTask} setTaskPriority={setTaskPriority} />
+              </ToolSection>
+            </>
           } />
           <Route path="/goals" element={
             <Goals
@@ -278,8 +288,17 @@ const App: React.FC = () => {
           <Route path="/faq" element={<Faq />} />
         </Routes>
       </div>
-    </HashRouter>
+      <SiteFooter />
+    </PomodoroProvider>
   );
 };
+
+const App: React.FC = () => (
+  <HashRouter>
+    <AppToastProvider>
+      <AppShell />
+    </AppToastProvider>
+  </HashRouter>
+);
 
 export default App;
