@@ -1,54 +1,55 @@
-import React from 'react';
-import { cn } from '../../lib/utils';
-import { DesignTokens, Typography } from '../../design-system/tokens';
+import React from "react";
+import { cx } from "../../lib/cx";
 
-
-interface ProgressProps {
-  value: number;
-  max?: number;
-  color?: 'primary' | 'success' | 'error' | 'warning' | 'info';
-  size?: 'sm' | 'md' | 'lg';
-  className?: string;
-}
-
-export const Progress: React.FC<ProgressProps> = ({
-  value,
-  max = 100,
-  color = 'primary',
-  size = 'md',
-  className,
-}) => {
-  const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
-  
-  const colorStyles = {
-    primary: 'bg-brand',
-    success: 'bg-success.DEFAULT',
-    error: 'bg-error.DEFAULT',
-    warning: 'bg-warning.DEFAULT',
-    info: 'bg-info.DEFAULT',
-  };
-
-  const heightStyles = {
-    sm: 'h-1.5',
-    md: 'h-2.5',
-    lg: 'h-4',
-  };
-
+export const ProgressBar: React.FC<{ value: number; label: string; className?: string }> = ({ value, label, className }) => {
+  const v = Math.max(0, Math.min(100, Math.round(value)));
   return (
-    <div className={cn(
-      'w-full bg-white/5 rounded-full overflow-hidden',
-      className
-    )}>
-      <div 
-        className={cn(
-          'h-full transition-all duration-300 ease-out',
-          colorStyles[color],
-          heightStyles[size]
-        )}
-        style={{ width: `${percentage}%` }}
-      />
+    <div
+      className={cx("progress", v === 100 && "progress--done", className)}
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={v}
+    >
+      <div className="progress__fill" style={{ width: `${v}%` }} />
     </div>
   );
 };
 
-export default Progress;
+interface RingProps {
+  /** 0..1 */
+  value: number;
+  size?: number;
+  stroke?: number;
+  className?: string;
+  children?: React.ReactNode;
+}
+
+/** Circular progress. Decorative: always pair it with visible text for the value. */
+export const ProgressRing: React.FC<RingProps> = ({ value, size = 44, stroke = 4, className, children }) => {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const v = Math.max(0, Math.min(1, value));
+  const mid = size / 2;
+  return (
+    <div className={cx("ring", className)} style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden focusable="false">
+        <circle className="ring__track" cx={mid} cy={mid} r={r} strokeWidth={stroke} fill="none" />
+        <circle
+          className="ring__value"
+          cx={mid}
+          cy={mid}
+          r={r}
+          strokeWidth={stroke}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - v)}
+          transform={`rotate(-90 ${mid} ${mid})`}
+        />
+      </svg>
+      {children && <div className="ring__label">{children}</div>}
+    </div>
+  );
+};

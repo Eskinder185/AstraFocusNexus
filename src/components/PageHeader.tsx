@@ -1,25 +1,19 @@
 import React from "react";
 
-export interface PageHeaderProps {
-  icon: string;
-  title: string;
-  subtitle?: string;
+interface Props {
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  eyebrow?: React.ReactNode;
+  actions?: React.ReactNode;
 }
 
-const PageHeader: React.FC<PageHeaderProps> = ({ icon, title, subtitle }) => {
-  return (
-    <header className="page-header">
-      <div className="page-header__inner">
-        <h1 className="page-title">
-          <span className="page-icon" aria-hidden>
-            {icon}
-          </span>
-          <span className="title-anim underline-sweep">{title}</span>
-        </h1>
-        {subtitle ? <p className="page-subtitle">{subtitle}</p> : null}
-      </div>
-    </header>
-  );
-};
-
-export default PageHeader;
+export const PageHeader: React.FC<Props> = ({ title, description, eyebrow, actions }) => (
+  <header className="page-header">
+    <div className="page-header__text">
+      {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+      <h1 className="page-header__title">{title}</h1>
+      {description && <p className="page-header__desc">{description}</p>}
+    </div>
+    {actions && <div className="page-header__actions">{actions}</div>}
+  </header>
+);

@@ -1,0 +1,182 @@
+/* ==========================================================================
+   AstraFocus design tokens
+   Palette: deep ink + "orbit" violet + a warm "star" gold used sparingly for
+   moments of progress. Components only ever reference semantic tokens.
+   ========================================================================== */
+
+:root {
+  /* Typography */
+  --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  --text-2xs: 0.6875rem; /* 11 */
+  --text-xs: 0.75rem;    /* 12 */
+  --text-sm: 0.8125rem;  /* 13 */
+  --text-md: 0.875rem;   /* 14, UI body */
+  --text-lg: 1rem;       /* 16 */
+  --text-xl: 1.25rem;    /* 20, section */
+  --text-2xl: 1.5rem;    /* 24, page */
+  --text-3xl: 2rem;      /* 32, hero */
+  --text-display: clamp(3.5rem, 12vw, 7.5rem); /* focus timer */
+
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  --leading-normal: 1.55;
+  --tracking-tight: -0.015em;
+  --tracking-tighter: -0.03em;
+  --tracking-caps: 0.06em;
+
+  /* Spacing: 4pt base */
+  --space-0-5: 0.125rem;
+  --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-2-5: 0.625rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 999px;
+
+  /* Layout */
+  --sidebar-w: 248px;
+  --sidebar-w-collapsed: 64px;
+  --topbar-h: 56px;
+  --mobile-nav-h: 64px;
+  --content-max: 1200px;
+  --gutter: clamp(1rem, 3vw, 2rem);
+  --hit: 2.25rem; /* 36px min control height (44px on touch, see below) */
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 280ms;
+
+  /* Z layers */
+  --z-sticky: 20;
+  --z-nav: 30;
+  --z-overlay: 50;
+  --z-toast: 70;
+}
+
+@media (pointer: coarse) {
+  :root { --hit: 2.75rem; }
+}
+
+/* ---------- Dark (default) ---------- */
+:root,
+[data-theme="dark"] {
+  --bg: #0a0d16;
+  --bg-sunken: #070910;
+  --surface: #10141f;
+  --surface-2: #151a28;
+  --surface-3: #1b2132;
+  --surface-hover: rgba(255, 255, 255, 0.04);
+  --surface-active: rgba(255, 255, 255, 0.07);
+  --overlay: rgba(4, 6, 12, 0.62);
+
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --border-focus: #9d90ff;
+
+  --text: #eef0f6;
+  --text-2: #a5abbd;
+  --text-3: #7c8399;
+  --text-inverse: #0a0d16;
+
+  --accent: #8b7cf6;
+  --accent-strong: #6e5ce6;     /* filled buttons (white text ≥ 4.5:1) */
+  --accent-hover: #7b6af0;
+  --accent-text: #b2a8ff;       /* accent-coloured text on dark surfaces */
+  --accent-soft: rgba(139, 124, 246, 0.14);
+  --accent-softer: rgba(139, 124, 246, 0.08);
+  --on-accent: #ffffff;
+
+  --star: #f2c46d;
+  --star-soft: rgba(242, 196, 109, 0.14);
+
+  --success: #3dd68c;
+  --success-soft: rgba(61, 214, 140, 0.13);
+  --warning: #f5b544;
+  --warning-soft: rgba(245, 181, 68, 0.14);
+  --danger: #f2626b;
+  --danger-soft: rgba(242, 98, 107, 0.14);
+  --info: #5bb8f5;
+  --info-soft: rgba(91, 184, 245, 0.13);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--border);
+  --shadow-lg: 0 24px 64px -16px rgba(0, 0, 0, 0.7), 0 0 0 1px var(--border-strong);
+  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--border-focus);
+
+  --glow-accent: radial-gradient(600px 300px at 20% 0%, rgba(139, 124, 246, 0.10), transparent 70%);
+}
+
+/* ---------- Light ---------- */
+[data-theme="light"] {
+  --bg: #f7f5f0;
+  --bg-sunken: #efece5;
+  --surface: #ffffff;
+  --surface-2: #fbfaf7;
+  --surface-3: #f2efe8;
+  --surface-hover: rgba(28, 27, 34, 0.04);
+  --surface-active: rgba(28, 27, 34, 0.07);
+  --overlay: rgba(28, 27, 34, 0.32);
+
+  --border: rgba(28, 27, 34, 0.08);
+  --border-strong: rgba(28, 27, 34, 0.15);
+  --border-focus: #5b47d6;
+
+  --text: #1c1b22;
+  --text-2: #55535f;
+  --text-3: #6c6976;
+  --text-inverse: #ffffff;
+
+  --accent: #5b47d6;
+  --accent-strong: #5b47d6;
+  --accent-hover: #4c39c4;
+  --accent-text: #4c39c4;
+  --accent-soft: rgba(91, 71, 214, 0.1);
+  --accent-softer: rgba(91, 71, 214, 0.06);
+  --on-accent: #ffffff;
+
+  --star: #a8711a;
+  --star-soft: rgba(196, 140, 40, 0.14);
+
+  --success: #12804f;
+  --success-soft: rgba(18, 128, 79, 0.1);
+  --warning: #9a5b00;
+  --warning-soft: rgba(196, 128, 0, 0.12);
+  --danger: #c4323c;
+  --danger-soft: rgba(196, 50, 60, 0.1);
+  --info: #1b6fae;
+  --info-soft: rgba(27, 111, 174, 0.1);
+
+  --shadow-sm: 0 1px 2px rgba(28, 27, 34, 0.06);
+  --shadow-md: 0 4px 14px -4px rgba(28, 27, 34, 0.12), 0 0 0 1px var(--border);
+  --shadow-lg: 0 24px 60px -18px rgba(28, 27, 34, 0.28), 0 0 0 1px var(--border);
+
+  --glow-accent: radial-gradient(600px 300px at 20% 0%, rgba(91, 71, 214, 0.06), transparent 70%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+  }
+}

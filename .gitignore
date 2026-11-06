@@ -46,3 +46,7 @@ _verify_tmp/
 .env
 .env.*
 !.env.example
+
+# Playwright
+test-results/
+playwright-report/

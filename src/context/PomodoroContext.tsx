@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import BreakSuggestions from "../BreakSuggestions";
+import { BreakDialog } from "../features/focus/BreakDialog";
 import { useAppToast } from "./AppToast";
 import {
   flashTitleStop,
@@ -81,7 +81,7 @@ export function modeLabel(mode: PomodoroMode) {
 }
 
 interface PomodoroContextValue {
-  /** Task title from Home 🎯 Focus (for display + notifications) */
+  /** Title of the task linked to the timer (display + notifications). */
   linkedTaskTitle: string | null;
   settings: PomodoroSettings;
   setSettings: React.Dispatch<React.SetStateAction<PomodoroSettings>>;
@@ -109,10 +109,21 @@ interface PomodoroContextValue {
 
 const PomodoroContext = createContext<PomodoroContextValue | null>(null);
 
+/** Reported when a focus segment ends, so the app can log it and credit the linked task. */
+export interface FocusSegmentInfo {
+  /** Stable per segment (derived from its scheduled end time) so duplicate reports can be dropped. */
+  id: string;
+  endedAt: number;
+  /** Time actually spent in focus (excludes paused time). */
+  focusedMs: number;
+  /** false when the user skipped the segment before it ran out. */
+  completed: boolean;
+}
+
 interface ProviderProps {
   children: React.ReactNode;
   activeTaskTitle?: string | null;
-  onFocusComplete?: () => void;
+  onFocusComplete?: (info: FocusSegmentInfo) => void;
   onRunningChange?: (running: boolean) => void;
 }
 
@@ -149,6 +160,10 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
   const activeTaskTitleRef = useRef(activeTaskTitle);
   const onFocusCompleteRef = useRef(onFocusComplete);
   const onRunningChangeRef = useRef(onRunningChange);
+  const endAtRef = useRef<number | null>(null);
+  const pausedRemainingRef = useRef<number | null>(null);
+  const segmentDurationRef = useRef(segmentDurationMs);
+  const phaseRef = useRef<Phase>(phase);
 
   useEffect(() => {
     modeRef.current = mode;
@@ -168,6 +183,12 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
   useEffect(() => {
     onRunningChangeRef.current = onRunningChange;
   }, [onRunningChange]);
+  useEffect(() => {
+    endAtRef.current = endAt;
+    pausedRemainingRef.current = pausedRemainingMs;
+    segmentDurationRef.current = segmentDurationMs;
+    phaseRef.current = phase;
+  }, [endAt, pausedRemainingMs, segmentDurationMs, phase]);
 
   useEffect(() => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -210,9 +231,20 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
           setPausedRemainingMs(null);
           onRunningChangeRef.current?.(true);
         } else {
-          showToast("A focus or break timer finished while you were away. Check the Focus page to continue.", {
-            durationMs: 10_000,
-          });
+          if (p.mode === "focus") {
+            onFocusCompleteRef.current?.({
+              id: `f-${p.endAt}`,
+              endedAt: p.endAt,
+              focusedMs: p.segmentDurationMs,
+              completed: true,
+            });
+          }
+          showToast(
+            p.mode === "focus"
+              ? "Your focus session finished while you were away. It has been logged."
+              : "Your break finished while you were away.",
+            { durationMs: 8_000 }
+          );
           setPhase("idle");
           setEndAt(null);
           setPausedRemainingMs(null);
@@ -260,7 +292,7 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
 
   const running = phase === "running";
 
-  const finishFocusSegment = useCallback(async () => {
+  const finishFocusSegment = useCallback(async (info: FocusSegmentInfo) => {
     const s = settingsRef.current;
     const title = "Focus complete ✅";
     const body = activeTaskTitleRef.current ? `Task: ${activeTaskTitleRef.current}` : "Take a break!";
@@ -269,7 +301,7 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
     vibrate();
     startTitleFlash(originalTitleRef, flasherRef);
     window.setTimeout(() => flashTitleStop(originalTitleRef, flasherRef), 20_000);
-    onFocusCompleteRef.current?.();
+    onFocusCompleteRef.current?.(info);
 
     const nextCycle = cycleRef.current + 1;
     const nextMode: PomodoroMode =
@@ -325,10 +357,17 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
     if (endingRef.current) return;
     endingRef.current = true;
     const m = modeRef.current;
+    const scheduledEnd = endAtRef.current ?? Date.now();
+    const info: FocusSegmentInfo = {
+      id: `f-${scheduledEnd}`,
+      endedAt: scheduledEnd,
+      focusedMs: segmentDurationRef.current,
+      completed: true,
+    };
     setPhase("idle");
     setEndAt(null);
     if (m === "focus") {
-      void finishFocusSegment().finally(() => {
+      void finishFocusSegment(info).finally(() => {
         endingRef.current = false;
       });
     } else {
@@ -453,7 +492,16 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
     const s = settingsRef.current;
     const c = cycleRef.current;
     if (modeRef.current === "focus") {
-      onFocusCompleteRef.current?.();
+      // Skipping is not completing: log the time actually focused, but don't credit a Pomodoro.
+      const now = Date.now();
+      const remaining =
+        phaseRef.current === "running" && endAtRef.current != null
+          ? Math.max(0, endAtRef.current - now)
+          : pausedRemainingRef.current ?? segmentDurationRef.current;
+      const focusedMs = Math.max(0, segmentDurationRef.current - remaining);
+      if (focusedMs > 0) {
+        onFocusCompleteRef.current?.({ id: `f-skip-${now}`, endedAt: now, focusedMs, completed: false });
+      }
       const nextCycle = c + 1;
       const nextMode: PomodoroMode =
         nextCycle % s.cyclesBeforeLong === 0 ? "long" : "short";
@@ -575,8 +623,9 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
       <audio ref={audioRef} style={{ display: "none" }} aria-hidden />
       {children}
       {showBreakModal && (
-        <BreakSuggestions
-          closing={breakModalClosing}
+        <BreakDialog
+          minutes={Math.round(segmentDurationMs / 60_000)}
+          long={mode === "long"}
           onStartBreak={confirmStartBreak}
           onSkipBreak={confirmSkipBreak}
         />
