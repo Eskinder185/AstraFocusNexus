@@ -1,15 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import LiveBackground from "./LiveBackground";
-import MiniPomodoroBar from "./components/MiniPomodoroBar";
-import Nav from "./components/Nav";
-import SiteFooter from "./components/SiteFooter";
 import PageHeader from "./components/PageHeader";
 import ToolSection from "./components/ToolSection";
+import Layout from "./components/layout/Layout";
 import { AppToastProvider, useAppToast } from "./context/AppToast";
 import { PomodoroProvider } from "./context/PomodoroContext";
 import { celebrate } from "./utils/celebrate";
-import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
 import Focus from "./pages/Focus";
 import Wellness from "./pages/Wellness";
 import Matrix from "./pages/Matrix";
@@ -231,12 +229,10 @@ const AppShell: React.FC = () => {
       onRunningChange={setPomoRunning}
     >
       <LiveBackground />
-      <Nav />
-      <MiniPomodoroBar />
-      <div className="container">
+      <Layout>
         <Routes>
           <Route path="/" element={
-            <Home
+            <Dashboard
               input={input} setInput={setInput}
               dueAt={dueAt} setDueAt={setDueAt}
               remind={remind} setRemind={setRemind}
@@ -286,9 +282,10 @@ const AppShell: React.FC = () => {
           } />
           <Route path="/about" element={<About />} />
           <Route path="/faq" element={<Faq />} />
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </div>
-      <SiteFooter />
+      </Layout>
     </PomodoroProvider>
   );
 };

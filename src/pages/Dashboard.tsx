@@ -442,4 +442,4 @@ const Home: React.FC<Props> = p => {
   );
 };
 
-export default Home;
+export default HomeFocusEntry;

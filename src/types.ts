@@ -2,18 +2,45 @@ export type Filter = "all" | "active" | "completed" | "matrix";
 
 export type Priority = "UI" | "UN" | "NI" | "NN"; // Urgent+Important, Urgent+Not, Not urgent+Important, Not+Not
 
+export type TaskStatus = "todo" | "in-progress" | "completed" | "archived";
+
+export type RecurrenceType = "none" | "daily" | "weekly" | "monthly" | "custom";
+
+export interface Recurrence {
+  type: RecurrenceType;
+  interval: number;
+  daysOfWeek?: number[]; // 0-6, 0 is Sunday
+  customInterval?: number;
+}
+
+export interface ReminderSettings {
+  id: string;
+  taskId: number;
+  scheduledTimestamp: number;
+  status: "pending" | "dismissed" | "snoozed";
+  recurrence?: Recurrence;
+  snoozeUntil?: number;
+  dismissedAt?: number;
+  lastNotifiedAt?: number;
+}
+
 export interface Task {
   id: number;
-  text: string;
-  completed: boolean;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  priority: Priority;
+  dueDate: string | null;
+  startDate: string | null;
+  projectId: number | null;
+  tags: string[];
+  subtasks: Task[];
+  recurrence: Recurrence;
+  reminderSettings: ReminderSettings | null;
   createdAt: number;
-  dueAt?: string;
-  remind?: boolean;
-  notified?: boolean;
-  // Pomodoro stats
+  updatedAt: number;
+  completedAt: number | null;
   pomos?: number;
-  // Phase 2 additions
-  priority?: Priority;
   goalId?: number | null;
 }
 

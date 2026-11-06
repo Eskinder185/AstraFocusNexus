@@ -385,14 +385,19 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
       }
       flashStop();
       const dur = durationForMode(modeRef.current, settingsRef.current);
-      const base =
-        typeof durMs === "number" && durMs > 0
-          ? durMs
-          : phase === "paused" && pausedRemainingMs != null && pausedRemainingMs > 0
-            ? pausedRemainingMs
-            : dur;
-      const ms = base > 0 ? base : dur;
-      setSegmentDurationMs(ms);
+      let ms = dur;
+      let updateSegmentDuration = true;
+
+      if (typeof durMs === "number" && durMs > 0) {
+        ms = durMs;
+      } else if (phase === "paused" && pausedRemainingMs != null && pausedRemainingMs > 0) {
+        ms = pausedRemainingMs;
+        updateSegmentDuration = false;
+      }
+
+      if (updateSegmentDuration) {
+        setSegmentDurationMs(ms);
+      }
       setEndAt(Date.now() + ms);
       setPhase("running");
       setPausedRemainingMs(null);

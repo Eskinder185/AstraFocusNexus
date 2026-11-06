@@ -31,12 +31,12 @@ const PriorityMatrix: React.FC<{
             <div className="matrix-title">{labels[q]}</div>
             <ul className="task-list compact">
               {items.map(t => (
-                <li key={t.id} className={t.completed ? "done" : ""}>
+                <li key={t.id} className={t.status === "completed" ? "done" : ""}>
                   <label style={{display:"flex", gap:8, alignItems:"center"}}>
-                    <input type="checkbox" checked={t.completed} onChange={()=>onToggleComplete(t.id)} />
-                    <span>{t.text}</span>
+                    <input type="checkbox" checked={t.status === "completed"} onChange={()=>onToggleComplete(t.id)} />
+                    <span>{t.title}</span>
                   </label>
-                  {!t.completed && (
+                  {t.status !== "completed" && (
                     <div className="priority-picker">
                       {quadrants.map(opt => (
                         <button

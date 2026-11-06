@@ -31,7 +31,7 @@ const GoalsPanel: React.FC<{
       if (t.goalId == null) continue;
       const g = byGoal.get(t.goalId) ?? { total: 0, done: 0 };
       g.total += 1;
-      if (t.completed) g.done += 1;
+      if (t.status === "completed") g.done += 1;
       byGoal.set(t.goalId, g);
     }
     return byGoal;
