@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useReducer, useRe
 import { useAppToast } from "../../context/AppToast";
 import { createId } from "../../lib/id";
 import { browserStore } from "../../lib/storage";
+import { playNotificationSound } from "../../lib/notificationSound";
 import { WORKSPACE_KEY, loadWorkspace, type LoadResult } from "./migrate";
 import { reducer, type GoalPatch, type ProjectPatch, type TaskPatch } from "./reducer";
 import { emptyWorkspace, normalizeWorkspace, type FocusSession, type Goal, type Prefs, type Project, type Task, type WorkspaceData } from "./schema";
@@ -112,6 +113,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       });
       if (!due.length) return;
       for (const t of due) {
+        void playNotificationSound(`reminder-${t.id}-${dueTimestamp(t)}`);
         let delivered = false;
         if ("Notification" in window && Notification.permission === "granted") {
           try {

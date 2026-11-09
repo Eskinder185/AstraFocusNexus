@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { CalendarClock, Play, Sparkles, Timer } from "lucide-react";
 import { useUIActions } from "../../app/ui";
 import { useAppToast } from "../../context/AppToast";
+import { playNotificationSound } from "../../lib/notificationSound";
 import { cx } from "../../lib/cx";
 import { formatTime, relativeDayLabel } from "../../lib/dates";
 import { useFocusOnTask } from "../focus/useFocusOnTask";
@@ -61,6 +62,7 @@ export const TaskRow: React.FC<Props> = ({ task, now, hidePriority, hideGoal, co
     setCompleting(true);
     window.setTimeout(() => {
       toggleTask(task.id);
+      void playNotificationSound(`task-complete-${task.id}-${Date.now()}`, "task");
       setCompleting(false);
       showToast(`Completed “${task.title}”`, {
         tone: "success",

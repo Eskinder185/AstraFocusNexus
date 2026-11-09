@@ -8,6 +8,11 @@ import "./styles/shell.css";
 import "./styles/pages.css";
 import "./styles/pro.css";
 import App from "./App";
+import { unlockNotificationAudio } from "./lib/notificationSound";
+
+// A browser gesture is needed before scheduled events may play Web Audio.
+window.addEventListener("pointerdown", unlockNotificationAudio, { once: true, capture: true });
+window.addEventListener("keydown", unlockNotificationAudio, { once: true, capture: true });
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { Bell, Download, HardDrive, Monitor, Moon, Sun, Upload } from "lucide-react";
+import { Bell, Download, HardDrive, Monitor, Moon, Sun, Upload, Volume2 } from "lucide-react";
 import { PageHeader } from "../../components/PageHeader";
 import { useAppToast } from "../../context/AppToast";
 import { usePomodoro } from "../../context/PomodoroContext";
 import { useTheme, type ThemeMode } from "../../context/ThemeContext";
 import { cx } from "../../lib/cx";
 import { toDateKey } from "../../lib/dates";
+import { previewNotificationSound, readSoundPreferences, saveSoundPreferences, type SoundPreferences } from "../../lib/notificationSound";
 import { readAllEntries } from "../wellness/wellnessStore";
 import { LEGACY_BACKUP_KEY } from "../workspace/migrate";
 import { normalizeWorkspace, type WorkspaceData } from "../workspace/schema";
@@ -41,6 +42,12 @@ export const SettingsPage: React.FC = () => {
   const { showToast } = useAppToast();
   const [perm, setPerm] = useState<NotificationPermission | "unsupported">(() => ("Notification" in window ? Notification.permission : "unsupported"));
   const [pendingImport, setPendingImport] = useState<WorkspaceData | null>(null);
+  const [sound, setSound] = useState(readSoundPreferences);
+  const updateSound = (patch: Partial<SoundPreferences>) => {
+    const next = { ...sound, ...patch };
+    setSound(next);
+    if (!saveSoundPreferences(next)) showToast("Sound preference could not be saved on this device.", { tone: "warning" });
+  };
   const hasLegacyBackup = (() => {
     try {
       return localStorage.getItem(LEGACY_BACKUP_KEY) != null;
@@ -57,6 +64,7 @@ export const SettingsPage: React.FC = () => {
       workspace: data,
       wellness: data.prefs.wellnessEnabled ? readAllEntries() : [],
       focusSettings: settings,
+      notificationSound: sound,
     };
     download(`astrafocus-export-${toDateKey(new Date())}.json`, JSON.stringify(payload, null, 2));
     showToast("Export downloaded.", { tone: "success" });
@@ -161,6 +169,32 @@ export const SettingsPage: React.FC = () => {
               {perm === "denied" ? "Blocked: how to fix" : "Allow notifications"}
             </button>
           )}
+        </SettingRow>
+        <SettingRow label="Notification sound" description="A gentle two-tone chime for focus endings, break endings, and task reminders. Works while this page is open, subject to browser audio rules.">
+          <label className="switch">
+            <input type="checkbox" aria-label="Enable notification sound" checked={sound.enabled} onChange={e => updateSound({ enabled: e.target.checked })} />
+            <span>{sound.enabled ? "On" : "Off"}</span>
+          </label>
+        </SettingRow>
+        <SettingRow label="Sound volume" description="Default is 30%.">
+          <div className="row">
+            <label htmlFor="notification-volume" className="visually-hidden">Notification sound volume</label>
+            <input id="notification-volume" type="range" min="0" max="100" step="5" value={Math.round(sound.volume * 100)}
+              disabled={!sound.enabled} onChange={e => updateSound({ volume: Number(e.target.value) / 100 })} />
+            <output htmlFor="notification-volume" className="tabular">{Math.round(sound.volume * 100)}%</output>
+          </div>
+        </SettingRow>
+        <SettingRow label="Task completion sound" description="Optional quieter cue when you complete a task.">
+          <label className="switch">
+            <input type="checkbox" aria-label="Task completion sound" checked={sound.taskCompletion} disabled={!sound.enabled} onChange={e => updateSound({ taskCompletion: e.target.checked })} />
+            <span>{sound.taskCompletion ? "On" : "Off"}</span>
+          </label>
+        </SettingRow>
+        <SettingRow label="Test sound" description="Tap to preview. Your browser may require this interaction before automatic chimes can play.">
+          <button type="button" className="btn btn--sm" disabled={!sound.enabled || sound.volume === 0}
+            onClick={() => void previewNotificationSound().then(ok => { if (!ok) showToast("Audio is blocked or unavailable in this browser.", { tone: "warning" }); })}>
+            <Volume2 size={15} aria-hidden /> Test sound
+          </button>
         </SettingRow>
       </SettingsSection>
 
