@@ -23,6 +23,10 @@ export interface Task {
   dueDate: string | null;
   /** Local time, "HH:mm". Only meaningful when dueDate is set. */
   dueTime: string | null;
+  /** Planned work block start (epoch milliseconds), distinct from the deadline. */
+  scheduledAt?: number | null;
+  /** Planned work duration in minutes. */
+  estimateMin?: number | null;
   /** Send a reminder at the due date + time. Requires dueTime. */
   remind: boolean;
   reminderSentAt: number | null;
@@ -123,6 +127,8 @@ export function normalizeTask(raw: unknown, now: number): Task | null {
     priority: isPriority(raw.priority) ? raw.priority : "NN",
     dueDate,
     dueTime,
+    scheduledAt: numOrNull(raw.scheduledAt),
+    estimateMin: typeof raw.estimateMin === "number" && Number.isInteger(raw.estimateMin) && raw.estimateMin >= 5 && raw.estimateMin <= 720 ? raw.estimateMin : null,
     remind: raw.remind === true && !!dueTime,
     reminderSentAt: numOrNull(raw.reminderSentAt),
     goalId: typeof raw.goalId === "string" && raw.goalId ? raw.goalId : null,

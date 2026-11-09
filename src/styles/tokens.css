@@ -9,10 +9,10 @@
   --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
 
-  --text-2xs: 0.6875rem; /* 11 */
-  --text-xs: 0.75rem;    /* 12 */
-  --text-sm: 0.8125rem;  /* 13 */
-  --text-md: 0.875rem;   /* 14, UI body */
+  --text-2xs: 0.75rem;
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-md: 0.9375rem;
   --text-lg: 1rem;       /* 16 */
   --text-xl: 1.25rem;    /* 20, section */
   --text-2xl: 1.5rem;    /* 24, page */
@@ -80,11 +80,11 @@
 /* ---------- Dark (default) ---------- */
 :root,
 [data-theme="dark"] {
-  --bg: #0a0d16;
+  --bg: #0b0e17;
   --bg-sunken: #070910;
-  --surface: #10141f;
-  --surface-2: #151a28;
-  --surface-3: #1b2132;
+  --surface: #121725;
+  --surface-2: #171c2b;
+  --surface-3: #20263a;
   --surface-hover: rgba(255, 255, 255, 0.04);
   --surface-active: rgba(255, 255, 255, 0.07);
   --overlay: rgba(4, 6, 12, 0.62);
@@ -93,9 +93,9 @@
   --border-strong: rgba(255, 255, 255, 0.12);
   --border-focus: #9d90ff;
 
-  --text: #eef0f6;
-  --text-2: #a5abbd;
-  --text-3: #7c8399;
+  --text: #f5f6fa;
+  --text-2: #b4bdd1;
+  --text-3: #99a4bd;
   --text-inverse: #0a0d16;
 
   --accent: #8b7cf6;
@@ -128,11 +128,11 @@
 
 /* ---------- Light ---------- */
 [data-theme="light"] {
-  --bg: #f7f5f0;
-  --bg-sunken: #efece5;
+  --bg: #f7f8fc;
+  --bg-sunken: #eceef5;
   --surface: #ffffff;
-  --surface-2: #fbfaf7;
-  --surface-3: #f2efe8;
+  --surface-2: #f3f5fa;
+  --surface-3: #eceff6;
   --surface-hover: rgba(28, 27, 34, 0.04);
   --surface-active: rgba(28, 27, 34, 0.07);
   --overlay: rgba(28, 27, 34, 0.32);

@@ -143,6 +143,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           priority: prefs.defaultPriority,
           dueDate: null,
           dueTime: null,
+          scheduledAt: null,
+          estimateMin: null,
           remind: false,
           reminderSentAt: null,
           goalId: prefs.defaultGoalId,

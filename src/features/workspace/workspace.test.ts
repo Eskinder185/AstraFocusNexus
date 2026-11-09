@@ -3,7 +3,34 @@ import { memoryStore } from "../../lib/storage";
 import { LEGACY_BACKUP_KEY, LEGACY_KEYS, WORKSPACE_KEY, loadWorkspace } from "./migrate";
 import { parseQuickAdd } from "./quickAdd";
 import { reducer } from "./reducer";
-import { emptyWorkspace, type Task } from "./schema";
+import { emptyWorkspace, normalizeWorkspace, type Task } from "./schema";
+import { suggestSlot } from "../calendar/planner";
+
+describe("scheduled task persistence", () => {
+  it("keeps one task identity and its work block across normalization", () => {
+    const at = new Date(2026, 10, 9, 9).getTime();
+    const original = { ...emptyWorkspace(), tasks: [task({ id: "schedule-1", dueDate: "2026-11-12", scheduledAt: at, estimateMin: 45 })] };
+    const loaded = normalizeWorkspace(JSON.parse(JSON.stringify(original)), NOW.getTime());
+    expect(loaded?.data.tasks).toHaveLength(1);
+    expect(loaded?.data.tasks[0]).toMatchObject({ id: "schedule-1", dueDate: "2026-11-12", scheduledAt: at, estimateMin: 45 });
+    const moved = reducer(loaded!.data, { type: "task/update", id: "schedule-1", patch: { scheduledAt: at + 3_600_000 }, now: NOW.getTime() });
+    expect(moved.tasks).toHaveLength(1);
+    expect(moved.tasks[0].scheduledAt).toBe(at + 3_600_000);
+    expect(moved.tasks[0].dueDate).toBe("2026-11-12");
+  });
+});
+
+describe("deterministic planner", () => {
+  it("avoids occupied slots and never changes a deadline", () => {
+    const now = new Date(2026, 10, 9, 8);
+    const occupied = task({ id: "busy", scheduledAt: new Date(2026, 10, 9, 9).getTime(), estimateMin: 60 });
+    const work = task({ id: "work", dueDate: "2026-11-09", estimateMin: 45 });
+    const suggestion = suggestSlot(work, [occupied, work], now);
+    expect(new Date(suggestion!.at).getHours()).toBe(10);
+    expect(work.scheduledAt).toBeUndefined();
+    expect(work.dueDate).toBe("2026-11-09");
+  });
+});
 import { buildInsights, goalProgress, groupOpenTasks, isOverdue, topPriorities } from "./selectors";
 
 // Friday 6 Nov 2026, 10:00 local time.

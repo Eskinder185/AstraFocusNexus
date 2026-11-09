@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Bell, CalendarClock, FileText, Play, Sparkles, Timer } from "lucide-react";
+import { CalendarClock, Play, Sparkles, Timer } from "lucide-react";
 import { useUIActions } from "../../app/ui";
 import { useAppToast } from "../../context/AppToast";
 import { cx } from "../../lib/cx";
@@ -110,24 +110,8 @@ export const TaskRow: React.FC<Props> = ({ task, now, hidePriority, hideGoal, co
               <span aria-hidden>{goal.emoji}</span> {goal.title}
             </span>
           )}
-          {task.pomodoros > 0 && (
-            <span className="chip" title={`${task.pomodoros} completed focus sessions`}>
-              <Timer size={12} aria-hidden /> {task.pomodoros}
-              <span className="visually-hidden"> focus sessions</span>
-            </span>
-          )}
-          {task.remind && !task.reminderSentAt && !done && (
-            <span className="chip" title="Reminder set">
-              <Bell size={12} aria-hidden />
-              <span className="visually-hidden">Reminder set</span>
-            </span>
-          )}
-          {task.notes && (
-            <span className="chip" title="Has notes">
-              <FileText size={12} aria-hidden />
-              <span className="visually-hidden">Has notes</span>
-            </span>
-          )}
+          {task.scheduledAt && <span className="task-row__scheduled">Planned {new Date(task.scheduledAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · {new Date(task.scheduledAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span>}
+          {task.pomodoros > 0 && <span className="chip" title={`${task.pomodoros} completed focus sessions`}><Timer size={12} aria-hidden /> {task.pomodoros}</span>}
         </span>
       </button>
       <div className="task-row__actions">

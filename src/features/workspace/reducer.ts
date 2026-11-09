@@ -27,7 +27,9 @@ function sanitizeTask(t: Task): Task {
   const dueDate = t.dueDate || null;
   const dueTime = dueDate ? t.dueTime || null : null;
   const remind = t.remind && !!dueTime;
-  return { ...t, dueDate, dueTime, remind, completedAt: t.status === "done" ? t.completedAt : null };
+  const scheduledAt = typeof t.scheduledAt === "number" && Number.isFinite(t.scheduledAt) ? t.scheduledAt : null;
+  const estimateMin = typeof t.estimateMin === "number" && Number.isInteger(t.estimateMin) && t.estimateMin >= 5 && t.estimateMin <= 720 ? t.estimateMin : null;
+  return { ...t, dueDate, dueTime, scheduledAt, estimateMin, remind, completedAt: t.status === "done" ? t.completedAt : null };
 }
 
 export function reducer(state: WorkspaceData, action: Action): WorkspaceData {

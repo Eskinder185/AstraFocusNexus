@@ -1,0 +1,58 @@
+.next-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  margin-bottom: 1rem;
+  border-color: var(--border-strong);
+  background: linear-gradient(110deg, var(--surface-2), var(--surface));
+}
+.offline-banner { padding: .5rem 1rem; background: var(--warning-soft); color: var(--text); text-align: center; font-size: var(--text-sm); }
+.next-action h2 { margin: .35rem 0 .6rem; font-size: clamp(1.4rem, 2.5vw, 2rem); line-height: 1.2; }
+.next-action .subtle { margin: .35rem 0; }
+.next-action .row { flex: none; }
+.task-row__scheduled { color: var(--text-2); font-size: var(--text-xs); }
+.calendar-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; margin-bottom: 1rem; }
+.calendar-layout { display: grid; grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.calendar-backlog .select { width: 100%; }
+.calendar-backlog__list { display: grid; gap: .35rem; margin: 1rem 0 0; max-height: 35rem; overflow: auto; }
+.calendar-backlog__list li { padding: .5rem; background: var(--surface-2); border-radius: var(--radius-md); cursor: grab; }
+.calendar-backlog__list button { width: 100%; text-align: left; color: var(--text); }
+.calendar-content { overflow-x: auto; }
+.calendar-grid { display: grid; min-width: max-content; }
+.calendar-grid__heading, .calendar-grid__hour, .calendar-grid__slot, .calendar-grid__corner { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: .5rem; }
+.calendar-grid__heading { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+.calendar-grid__hour { color: var(--text-2); font-size: var(--text-xs); }
+.calendar-grid__slot { min-height: 4rem; }
+.calendar-grid__slot:hover, .calendar-month__day:hover { background: var(--surface-hover); }
+.calendar-block { display: flex; align-items: start; gap: .25rem; padding: .45rem; margin-bottom: .3rem; border-left: 3px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--text); }
+.calendar-block.is-done { opacity: .55; }
+.calendar-block button:first-child { display: grid; flex: 1; min-width: 0; gap: .2rem; text-align: left; overflow-wrap: anywhere; }
+.calendar-block span { color: var(--text-2); font-size: var(--text-xs); }
+.calendar-block__focus { font-size: var(--text-xs); color: var(--accent-text); }
+.calendar-place { width: 100%; padding: .4rem; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); color: var(--accent-text); font-size: var(--text-xs); }
+.calendar-month { display: grid; grid-template-columns: repeat(7, minmax(7rem, 1fr)); min-width: 49rem; }
+.calendar-month__day { min-height: 7rem; padding: .5rem; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.calendar-day-label { margin-bottom: .5rem; font-weight: 600; color: var(--text); }
+.calendar-agenda { display: grid; gap: 1rem; padding: 1rem; }
+.calendar-agenda h2 { margin-bottom: .5rem; font-size: var(--text-lg); }
+@media (max-width: 767px) {
+  .calendar-layout { grid-template-columns: minmax(0, 1fr); }
+  .calendar-backlog__list { display: none; }
+  .calendar-toolbar .segmented { width: 100%; overflow: auto; }
+  .calendar-toolbar .segmented button { flex: 1; }
+  .next-action .row, .next-action .btn { width: 100%; }
+  .calendar-content { max-width: 100%; }
+}
+.analytics-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.analytics-summary .stat { padding: 1rem; }
+.analytics-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.analytics-goals { display: grid; gap: 1rem; }
+.analytics-goals > div { display: grid; gap: .4rem; }
+.analytics-review { display: grid; gap: .75rem; }
+.analytics-bars { display: grid; grid-template-columns: repeat(7, 1fr); height: 12rem; gap: .75rem; padding-top: 1rem; }
+.analytics-bars > div { display: flex; flex-direction: column; align-items: center; justify-content: end; min-width: 0; gap: .5rem; font-size: var(--text-xs); color: var(--text-2); }
+.analytics-bars__bar { display: block; width: min(100%, 2rem); min-height: 3px; background: var(--accent); border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+@media (max-width: 767px) { .analytics-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } .analytics-grid { grid-template-columns: minmax(0, 1fr); } }

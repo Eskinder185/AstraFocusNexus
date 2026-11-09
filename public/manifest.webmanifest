@@ -1,0 +1,13 @@
+{
+  "name": "AstraFocus Pro",
+  "short_name": "AstraFocus",
+  "description": "Plan with clarity. Focus with intention.",
+  "start_url": "/AstraFocusNexus/#/",
+  "scope": "/AstraFocusNexus/",
+  "display": "standalone",
+  "background_color": "#0b0e17",
+  "theme_color": "#0b0e17",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
