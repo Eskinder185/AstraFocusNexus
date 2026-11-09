@@ -3,8 +3,8 @@ import { useAppToast } from "../../context/AppToast";
 import { createId } from "../../lib/id";
 import { browserStore } from "../../lib/storage";
 import { WORKSPACE_KEY, loadWorkspace, type LoadResult } from "./migrate";
-import { reducer, type GoalPatch, type TaskPatch } from "./reducer";
-import { emptyWorkspace, normalizeWorkspace, type FocusSession, type Goal, type Prefs, type Task, type WorkspaceData } from "./schema";
+import { reducer, type GoalPatch, type ProjectPatch, type TaskPatch } from "./reducer";
+import { emptyWorkspace, normalizeWorkspace, type FocusSession, type Goal, type Prefs, type Project, type Task, type WorkspaceData } from "./schema";
 import { dueTimestamp } from "./selectors";
 
 export type NewTask = Partial<Omit<Task, "id" | "createdAt" | "updatedAt">> & { title: string };
@@ -19,6 +19,9 @@ export interface WorkspaceActions {
   addGoal(input: { title: string; emoji?: string; targetDate?: string | null }): Goal;
   updateGoal(id: string, patch: GoalPatch): void;
   deleteGoal(id: string): void;
+  addProject(input: { title: string; notes?: string; targetDate?: string | null; goalId?: string | null }): Project;
+  updateProject(id: string, patch: ProjectPatch): void;
+  deleteProject(id: string): void;
   setPrefs(patch: Partial<Prefs>): void;
   logFocusSession(session: FocusSession): void;
 }
@@ -148,6 +151,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           remind: false,
           reminderSentAt: null,
           goalId: prefs.defaultGoalId,
+          projectId: null,
           pomodoros: 0,
           completedAt: null,
           ...defined,
@@ -218,6 +222,18 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             },
           },
         });
+      },
+      addProject({ title, notes = "", targetDate = null, goalId = null }) {
+        const ts = now();
+        const project: Project = { id: createId("p"), title: title.trim(), notes, targetDate, goalId, createdAt: ts, updatedAt: ts };
+        dispatch({ type: "project/add", project });
+        return project;
+      },
+      updateProject(id, patch) {
+        dispatch({ type: "project/update", id, patch, now: now() });
+      },
+      deleteProject(id) {
+        dispatch({ type: "project/delete", id });
       },
       setPrefs(patch) {
         dispatch({ type: "prefs/set", patch });

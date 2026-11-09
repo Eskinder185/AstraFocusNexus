@@ -56,3 +56,13 @@
 .analytics-bars > div { display: flex; flex-direction: column; align-items: center; justify-content: end; min-width: 0; gap: .5rem; font-size: var(--text-xs); color: var(--text-2); }
 .analytics-bars__bar { display: block; width: min(100%, 2rem); min-height: 3px; background: var(--accent); border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
 @media (max-width: 767px) { .analytics-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } .analytics-grid { grid-template-columns: minmax(0, 1fr); } }
+.projects-layout { display: grid; grid-template-columns: minmax(12rem, 18rem) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.projects-create { display: flex; gap: .4rem; }
+.projects-create .input { min-width: 0; width: 100%; }
+.projects-list { display: grid; gap: .25rem; margin-top: 1rem; }
+.projects-list button { display: flex; justify-content: space-between; width: 100%; padding: .65rem; text-align: left; border-radius: var(--radius-md); color: var(--text); }
+.projects-list button.is-active { background: var(--accent-soft); color: var(--accent-text); }
+.projects-list span { color: var(--text-2); font-size: var(--text-xs); }
+.projects-detail { display: grid; gap: 1rem; }
+.projects-detail .field { max-width: 40rem; }
+@media (max-width: 767px) { .projects-layout { grid-template-columns: minmax(0, 1fr); } }

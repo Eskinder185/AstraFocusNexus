@@ -31,6 +31,22 @@ describe("deterministic planner", () => {
     expect(work.dueDate).toBe("2026-11-09");
   });
 });
+
+describe("project links", () => {
+  it("preserves linked tasks on project deletion and loads old workspaces", () => {
+    const old = emptyWorkspace();
+    delete (old as unknown as Record<string, unknown>).projects;
+    expect(normalizeWorkspace(old, NOW.getTime())?.data.projects).toEqual([]);
+    const workspace = emptyWorkspace();
+    workspace.projects.push({ id: "p1", title: "Launch", notes: "", goalId: null, targetDate: null, createdAt: 1, updatedAt: 1 });
+    workspace.tasks.push(task({ id: "t1", projectId: "p1" }));
+    const loaded = normalizeWorkspace(JSON.parse(JSON.stringify(workspace)), NOW.getTime())!.data;
+    expect(loaded.tasks[0].projectId).toBe("p1");
+    const after = reducer(loaded, { type: "project/delete", id: "p1" });
+    expect(after.tasks).toHaveLength(1);
+    expect(after.tasks[0].projectId).toBeNull();
+  });
+});
 import { buildInsights, goalProgress, groupOpenTasks, isOverdue, topPriorities } from "./selectors";
 
 // Friday 6 Nov 2026, 10:00 local time.

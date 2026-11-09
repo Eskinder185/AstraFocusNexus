@@ -31,11 +31,12 @@ No backend, OAuth, billing, cloud sync, or AI provider is configured. The app is
 - [x] Foundation: calmer dark/light tokens, larger type scale, clearer next action, simplified task rows, responsive Command Center, mobile Calendar navigation.
 - [x] Core scheduling: separate planned work start and estimate on the canonical task; day/week/month/agenda display; click and drag to schedule; task details editing; calendar to focus.
 - [x] Focus connection: scheduled blocks start the existing persistent focus timer; existing circular timer retained.
+- [x] Project foundation: project overview, notes, target date, related goal, and task links without duplicating task records.
 - [x] Analytics foundation: seven-day recorded focus, completed tasks, planned versus actual effort, weekly review and goal progress.
 - [x] Deterministic suggestion: first available work slot based on existing blocks, working hours and deadline, applied only on click.
 - [x] App shell: manifest, static shell caching, offline indicator.
 - [ ] Full Phase 2: recurrence, resizing blocks, all-day items, conflict UI, keyboard grid navigation, and mobile agenda refinement.
-- [ ] Full Phase 3: project workspaces, milestones, subtasks, and expanded goal detail.
+- [ ] Full Phase 3: project boards, milestones, subtasks, and expanded goal detail.
 - [ ] Full Phase 4: richer analytics, schedule completion metrics, and proposal review for multiple planning changes.
 - [ ] Full Phase 5: installability validation across browsers, robust offline/update testing, cross-version migration suite, performance profiling, accessibility audit, and security review.
 
@@ -44,7 +45,7 @@ This is a testable increment, not completion of every phase in the master prompt
 ## Verification and deployment
 
 - TypeScript and production build: pass.
-- Unit tests: 27 pass, including schedule persistence and deterministic slot selection.
+- Unit tests: 28 pass, including schedule persistence, deterministic slot selection, and old-workspace project compatibility.
 - Manual Chromium flow: task capture → schedule → reload → Command Center, pass at 390 px with no page errors or horizontal overflow.
 - Full Playwright runner: did not complete in this Windows environment; it stalled while starting the preview server. The focused browser flow above ran against an independently started production preview.
 - Browser screenshots: `work/overview-desktop.png` and `work/overview-mobile.png` in the agent workspace, captured from the production preview.
