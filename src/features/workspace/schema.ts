@@ -89,7 +89,7 @@ export interface MigrationRecord {
 }
 
 export interface WorkspaceData {
-  version: 1;
+  version: 2;
   tasks: Task[];
   goals: Goal[];
   projects: Project[];
@@ -106,7 +106,7 @@ export const DEFAULT_PREFS: Prefs = {
 };
 
 export function emptyWorkspace(): WorkspaceData {
-  return { version: 1, tasks: [], goals: [], projects: [], focusSessions: [], prefs: { ...DEFAULT_PREFS }, migrations: [] };
+  return { version: 2, tasks: [], goals: [], projects: [], focusSessions: [], prefs: { ...DEFAULT_PREFS }, migrations: [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -205,9 +205,9 @@ function uniqueBy<T extends { id: string }>(items: T[]): T[] {
   return items.filter(i => (seen.has(i.id) ? false : (seen.add(i.id), true)));
 }
 
-/** Returns a fully valid workspace, or null when `raw` is not a v1 workspace at all. */
+/** Upgrades supported workspace versions to the current in-memory schema. */
 export function normalizeWorkspace(raw: unknown, now: number): { data: WorkspaceData; dropped: number } | null {
-  if (!isObj(raw) || raw.version !== 1) return null;
+  if (!isObj(raw) || (raw.version !== 1 && raw.version !== 2)) return null;
   let dropped = 0;
   const collect = <T,>(list: unknown, fn: (x: unknown) => T | null): T[] => {
     if (!Array.isArray(list)) return [];
@@ -239,5 +239,5 @@ export function normalizeWorkspace(raw: unknown, now: number): { data: Workspace
     wellnessEnabled: p.wellnessEnabled !== false,
   };
   const migrations = Array.isArray(raw.migrations) ? (raw.migrations.filter(isObj) as unknown as MigrationRecord[]) : [];
-  return { data: { version: 1, tasks, goals, projects, focusSessions, prefs, migrations }, dropped };
+  return { data: { version: 2, tasks, goals, projects, focusSessions, prefs, migrations }, dropped };
 }

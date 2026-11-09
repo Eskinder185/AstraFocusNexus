@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { memoryStore } from "../../lib/storage";
-import { LEGACY_BACKUP_KEY, LEGACY_KEYS, WORKSPACE_KEY, loadWorkspace } from "./migrate";
+import { LEGACY_BACKUP_KEY, LEGACY_KEYS, PREVIOUS_WORKSPACE_KEY, WORKSPACE_KEY, loadWorkspace } from "./migrate";
 import { parseQuickAdd } from "./quickAdd";
 import { reducer } from "./reducer";
 import { emptyWorkspace, normalizeWorkspace, type Task } from "./schema";
@@ -45,6 +45,20 @@ describe("project links", () => {
     const after = reducer(loaded, { type: "project/delete", id: "p1" });
     expect(after.tasks).toHaveLength(1);
     expect(after.tasks[0].projectId).toBeNull();
+  });
+});
+
+describe("v1 to v2 storage migration", () => {
+  it("reads the old key without modifying it and writes only to v2", () => {
+    const old = { ...emptyWorkspace(), version: 1, tasks: [task({ id: "before", title: "Keep me" })] };
+    const raw = JSON.stringify(old);
+    const store = memoryStore({ [PREVIOUS_WORKSPACE_KEY]: raw });
+    const loaded = loadWorkspace(store, NOW.getTime());
+    expect(loaded.status).toBe("upgraded");
+    expect(loaded.needsWrite).toBe(true);
+    expect(loaded.data.version).toBe(2);
+    expect(loaded.data.tasks[0].title).toBe("Keep me");
+    expect(store.getItem(PREVIOUS_WORKSPACE_KEY)).toBe(raw);
   });
 });
 import { buildInsights, goalProgress, groupOpenTasks, isOverdue, topPriorities } from "./selectors";

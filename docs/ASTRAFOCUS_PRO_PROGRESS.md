@@ -4,9 +4,9 @@ Updated: 2026-11-09. This report describes the current repository and the work o
 
 ## Repository audit
 
-The app uses React 18, TypeScript, Vite 8, React Router's `HashRouter`, and CSS design tokens. The routes present at baseline were Overview, Tasks, Focus, Matrix, Goals, Wellness, Settings, and Help, with redirects from About, FAQ, and Dashboard. Tasks and goals share `WorkspaceData` in `astra.workspace.v1`. The legacy `task-tracker.*` keys are imported without deletion. The timer keeps its timestamp-based runtime under `pomodoro.session.v1`, and theme, atmosphere, volume, and wellness entries use separate keys.
+The app uses React 18, TypeScript, Vite 8, React Router's `HashRouter`, and CSS design tokens. The routes present at baseline were Overview, Tasks, Focus, Matrix, Goals, Wellness, Settings, and Help, with redirects from About, FAQ, and Dashboard. Tasks and goals shared `WorkspaceData` in `astra.workspace.v1`; version 2 now uses a separate key and retains v1. The legacy `task-tracker.*` keys are imported without deletion. The timer keeps its timestamp-based runtime under `pomodoro.session.v1`, and theme, atmosphere, volume, and wellness entries use separate keys.
 
-Existing working features include task capture and editing, deadline reminders while a tab is open, search and filters, goal links, Matrix movement, Pomodoro focus and history, a command palette, theme switching, data export/import, and undo for deletion. The current mobile shell has a persistent bottom bar. Reusable UI includes Dialog, Progress, EmptyState, PageHeader, TaskRow, and the tokenized button/card/form styles.
+Existing working features include task capture and editing, deadline reminders while a tab is open, search and filters, goal links, Matrix movement, Pomodoro focus and history, a command palette, theme switching, data export, and undo for deletion. The current mobile shell has a persistent bottom bar. Reusable UI includes Dialog, Progress, EmptyState, PageHeader, TaskRow, and the tokenized button/card/form styles.
 
 Baseline: `npm ci`, `npm run build`, and `npm test` passed (25 unit tests). The Vite base is `/AstraFocusNexus/`, output is `build`, and GitHub Pages deploys that directory from `main`. Hash routing supports bookmark refresh without server rewrite rules. The baseline JS bundle was 310.57 kB (96.55 kB gzip); this is a build size, not a Lighthouse measurement.
 
@@ -35,6 +35,7 @@ No backend, OAuth, billing, cloud sync, or AI provider is configured. The app is
 - [x] Analytics foundation: seven-day recorded focus, completed tasks, planned versus actual effort, weekly review and goal progress.
 - [x] Deterministic suggestion: first available work slot based on existing blocks, working hours and deadline, applied only on click.
 - [x] App shell: manifest, static shell caching, offline indicator.
+- [x] Data safety: version 1 to 2 migration with the prior key retained; validated workspace restore with a local backup.
 - [ ] Full Phase 2: recurrence, resizing blocks, all-day items, conflict UI, keyboard grid navigation, and mobile agenda refinement.
 - [ ] Full Phase 3: project boards, milestones, subtasks, and expanded goal detail.
 - [ ] Full Phase 4: richer analytics, schedule completion metrics, and proposal review for multiple planning changes.
@@ -45,8 +46,8 @@ This is a testable increment, not completion of every phase in the master prompt
 ## Verification and deployment
 
 - TypeScript and production build: pass.
-- Unit tests: 28 pass, including schedule persistence, deterministic slot selection, and old-workspace project compatibility.
-- Manual Chromium flow: task capture → schedule → reload → Command Center, pass at 390 px with no page errors or horizontal overflow.
+- Unit tests: 29 pass, including schedule persistence, deterministic slot selection, old-workspace project compatibility, and v1 to v2 migration.
+- Manual Chromium flow: task capture → schedule → reload → create project → link task → validated workspace restore → Command Center, pass at 390 px with no page errors or horizontal overflow.
 - Full Playwright runner: did not complete in this Windows environment; it stalled while starting the preview server. The focused browser flow above ran against an independently started production preview.
 - Browser screenshots: `work/overview-desktop.png` and `work/overview-mobile.png` in the agent workspace, captured from the production preview.
 - Deployment: not performed. The existing `main` workflow and `build` artifact path are unchanged. Review and merge the branch, then CI will run before a main push triggers Pages deployment.

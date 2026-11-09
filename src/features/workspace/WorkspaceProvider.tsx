@@ -22,6 +22,7 @@ export interface WorkspaceActions {
   addProject(input: { title: string; notes?: string; targetDate?: string | null; goalId?: string | null }): Project;
   updateProject(id: string, patch: ProjectPatch): void;
   deleteProject(id: string): void;
+  replaceData(data: WorkspaceData): void;
   setPrefs(patch: Partial<Prefs>): void;
   logFocusSession(session: FocusSession): void;
 }
@@ -234,6 +235,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       },
       deleteProject(id) {
         dispatch({ type: "project/delete", id });
+      },
+      replaceData(data) {
+        dispatch({ type: "replace", data });
       },
       setPrefs(patch) {
         dispatch({ type: "prefs/set", patch });

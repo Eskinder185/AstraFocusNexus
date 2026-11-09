@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Bell, Download, HardDrive, Monitor, Moon, Sun } from "lucide-react";
+import { Bell, Download, HardDrive, Monitor, Moon, Sun, Upload } from "lucide-react";
 import { PageHeader } from "../../components/PageHeader";
 import { useAppToast } from "../../context/AppToast";
 import { usePomodoro } from "../../context/PomodoroContext";
@@ -8,6 +8,7 @@ import { cx } from "../../lib/cx";
 import { toDateKey } from "../../lib/dates";
 import { readAllEntries } from "../wellness/wellnessStore";
 import { LEGACY_BACKUP_KEY } from "../workspace/migrate";
+import { normalizeWorkspace, type WorkspaceData } from "../workspace/schema";
 import { PRIORITY_META, PRIORITY_ORDER } from "../workspace/priority";
 import type { Priority } from "../workspace/schema";
 import { useWorkspace, useWorkspaceActions } from "../workspace/WorkspaceProvider";
@@ -34,11 +35,12 @@ const THEMES: Array<{ id: ThemeMode; label: string; icon: React.ReactNode }> = [
 
 export const SettingsPage: React.FC = () => {
   const data = useWorkspace();
-  const { setPrefs } = useWorkspaceActions();
+  const { setPrefs, replaceData } = useWorkspaceActions();
   const { mode, setMode } = useTheme();
   const { settings } = usePomodoro();
   const { showToast } = useAppToast();
   const [perm, setPerm] = useState<NotificationPermission | "unsupported">(() => ("Notification" in window ? Notification.permission : "unsupported"));
+  const [pendingImport, setPendingImport] = useState<WorkspaceData | null>(null);
   const hasLegacyBackup = (() => {
     try {
       return localStorage.getItem(LEGACY_BACKUP_KEY) != null;
@@ -63,6 +65,37 @@ export const SettingsPage: React.FC = () => {
   const exportLegacy = () => {
     const raw = localStorage.getItem(LEGACY_BACKUP_KEY);
     if (raw) download("astrafocus-v0.2-original-backup.json", raw);
+  };
+
+  const readImport = async (file?: File) => {
+    setPendingImport(null);
+    if (!file) return;
+    try {
+      if (file.size > 20 * 1024 * 1024) throw new Error("File is too large.");
+      const parsed: unknown = JSON.parse(await file.text());
+      const raw = typeof parsed === "object" && parsed !== null && "workspace" in parsed
+        ? (parsed as { workspace: unknown }).workspace : parsed;
+      const result = normalizeWorkspace(raw, Date.now());
+      if (!result) throw new Error("This file does not contain a supported AstraFocus workspace.");
+      if (result.dropped) throw new Error(`${result.dropped} records could not be validated. Nothing was imported.`);
+      setPendingImport(result.data);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Could not read this file.", { tone: "danger" });
+    }
+  };
+
+  const confirmImport = () => {
+    if (!pendingImport) return;
+    if (!window.confirm(`Replace your current workspace with ${pendingImport.tasks.length} tasks, ${pendingImport.goals.length} goals and ${pendingImport.projects.length} projects? A local backup will be saved first.`)) return;
+    try {
+      localStorage.setItem(`astra.backup.before-import.${Date.now()}`, JSON.stringify(data));
+    } catch {
+      showToast("Could not save a backup. Import was cancelled.", { tone: "danger" });
+      return;
+    }
+    replaceData(pendingImport);
+    setPendingImport(null);
+    showToast("Workspace restored. Your previous workspace is saved as a local backup.", { tone: "success" });
   };
 
   const requestNotifications = async () => {
@@ -148,11 +181,20 @@ export const SettingsPage: React.FC = () => {
             removes it. Export regularly if your work matters to you.
           </p>
         </div>
-        <SettingRow label="Export everything" description={`${data.tasks.length} tasks, ${data.goals.length} goals, ${data.focusSessions.length} focus sessions as JSON.`}>
+        <SettingRow label="Export everything" description={`${data.tasks.length} tasks, ${data.goals.length} goals, ${data.projects.length} projects, ${data.focusSessions.length} focus sessions as JSON.`}>
           <button type="button" className="btn btn--sm" onClick={exportAll}>
             <Download size={14} aria-hidden /> Export
           </button>
         </SettingRow>
+        <SettingRow label="Restore workspace" description="Choose an AstraFocus JSON export. Review its record counts before replacing your current workspace. Wellness and timer settings are not changed.">
+          <label className="btn btn--sm" htmlFor="workspace-import"><Upload size={14} aria-hidden /> Choose file</label>
+          <input id="workspace-import" className="visually-hidden" type="file" accept=".json,application/json" onChange={e => void readImport(e.target.files?.[0])} />
+        </SettingRow>
+        {pendingImport && <div className="data-note" role="status">
+          <span>Ready to restore: {pendingImport.tasks.length} tasks, {pendingImport.goals.length} goals, {pendingImport.projects.length} projects, {pendingImport.focusSessions.length} focus sessions.</span>
+          <button type="button" className="btn btn--primary btn--sm" onClick={confirmImport}>Restore workspace</button>
+          <button type="button" className="btn btn--sm" onClick={() => setPendingImport(null)}>Cancel</button>
+        </div>}
         {hasLegacyBackup && (
           <SettingRow label="Original v0.2 data" description="An untouched copy of your data from before this upgrade.">
             <button type="button" className="btn btn--sm btn--ghost" onClick={exportLegacy}>
