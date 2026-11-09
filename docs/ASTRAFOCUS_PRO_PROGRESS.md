@@ -48,6 +48,7 @@ This is a testable increment, not completion of every phase in the master prompt
 - TypeScript and production build: pass.
 - Unit tests: 29 pass, including schedule persistence, deterministic slot selection, old-workspace project compatibility, and v1 to v2 migration.
 - Manual Chromium flow: task capture → schedule → reload → create project → link task → validated workspace restore → Command Center, pass at 390 px with no page errors or horizontal overflow.
+- Responsive Chromium sweep: Overview, Tasks, Calendar, Focus, Matrix, Goals, Projects, Analytics, and Settings at 320, 375, 390, 414, 430, 768, 1024, and 1280 px in both themes; no document overflow or page errors observed. This does not replace manual keyboard or screen-reader testing.
 - Full Playwright runner: did not complete in this Windows environment; it stalled while starting the preview server. The focused browser flow above ran against an independently started production preview.
 - Browser screenshots: `work/overview-desktop.png` and `work/overview-mobile.png` in the agent workspace, captured from the production preview.
 - Deployment: not performed. The existing `main` workflow and `build` artifact path are unchanged. Review and merge the branch, then CI will run before a main push triggers Pages deployment.
