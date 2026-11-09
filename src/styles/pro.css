@@ -12,7 +12,10 @@
 .offline-banner { padding: .5rem 1rem; background: var(--warning-soft); color: var(--text); text-align: center; font-size: var(--text-sm); }
 .next-action h2 { margin: .35rem 0 .6rem; font-size: clamp(1.4rem, 2.5vw, 2rem); line-height: 1.2; }
 .next-action .subtle { margin: .35rem 0; }
-.next-action .row { flex: none; }
+/* Don't grow, but may shrink to the card and wrap its buttons (flex:none kept it at
+   max-content width, overflowing the card between ~768px and the point where it fits). */
+.next-action .row { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.next-action > div:first-child { min-width: 0; overflow-wrap: anywhere; }
 .task-row__scheduled { color: var(--text-2); font-size: var(--text-xs); }
 .calendar-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; margin-bottom: 1rem; }
 .calendar-layout { display: grid; grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr); gap: 1rem; align-items: start; }
