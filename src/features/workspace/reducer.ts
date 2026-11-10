@@ -1,7 +1,8 @@
-import type { FocusSession, Goal, Prefs, Task, WorkspaceData } from "./schema";
+import type { FocusSession, Goal, Prefs, Project, Task, WorkspaceData } from "./schema";
 
 export type TaskPatch = Partial<Omit<Task, "id" | "createdAt" | "legacyId">>;
 export type GoalPatch = Partial<Pick<Goal, "title" | "emoji" | "targetDate">>;
+export type ProjectPatch = Partial<Pick<Project, "title" | "notes" | "targetDate" | "goalId">>;
 
 export type Action =
   | { type: "task/add"; task: Task }
@@ -15,6 +16,9 @@ export type Action =
   | { type: "goal/update"; id: string; patch: GoalPatch; now: number }
   | { type: "goal/delete"; id: string }
   | { type: "goal/restore"; goal: Goal; index: number; taskIds: string[] }
+  | { type: "project/add"; project: Project }
+  | { type: "project/update"; id: string; patch: ProjectPatch; now: number }
+  | { type: "project/delete"; id: string }
   | { type: "prefs/set"; patch: Partial<Prefs> }
   | { type: "focus/log"; session: FocusSession }
   | { type: "reminders/sent"; ids: string[]; at: number }
@@ -27,7 +31,9 @@ function sanitizeTask(t: Task): Task {
   const dueDate = t.dueDate || null;
   const dueTime = dueDate ? t.dueTime || null : null;
   const remind = t.remind && !!dueTime;
-  return { ...t, dueDate, dueTime, remind, completedAt: t.status === "done" ? t.completedAt : null };
+  const scheduledAt = typeof t.scheduledAt === "number" && Number.isFinite(t.scheduledAt) ? t.scheduledAt : null;
+  const estimateMin = typeof t.estimateMin === "number" && Number.isInteger(t.estimateMin) && t.estimateMin >= 5 && t.estimateMin <= 720 ? t.estimateMin : null;
+  return { ...t, dueDate, dueTime, scheduledAt, estimateMin, remind, completedAt: t.status === "done" ? t.completedAt : null };
 }
 
 export function reducer(state: WorkspaceData, action: Action): WorkspaceData {
@@ -124,6 +130,13 @@ export function reducer(state: WorkspaceData, action: Action): WorkspaceData {
 
     case "prefs/set":
       return { ...state, prefs: { ...state.prefs, ...action.patch } };
+
+    case "project/add":
+      return { ...state, projects: [...state.projects, action.project] };
+    case "project/update":
+      return { ...state, projects: state.projects.map(p => p.id === action.id ? { ...p, ...action.patch, updatedAt: action.now } : p) };
+    case "project/delete":
+      return { ...state, projects: state.projects.filter(p => p.id !== action.id), tasks: state.tasks.map(t => t.projectId === action.id ? { ...t, projectId: null } : t) };
 
     case "focus/log": {
       const s = action.session;

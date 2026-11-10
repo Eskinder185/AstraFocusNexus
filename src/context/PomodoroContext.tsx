@@ -11,11 +11,11 @@ import { BreakDialog } from "../features/focus/BreakDialog";
 import { useAppToast } from "./AppToast";
 import {
   flashTitleStop,
-  playChime,
   startTitleFlash,
   tryNotify,
   vibrate,
 } from "../utils/pomodoroEffects";
+import { playNotificationSound, unlockNotificationAudio } from "../lib/notificationSound";
 
 export type PomodoroMode = "focus" | "short" | "long";
 
@@ -147,7 +147,6 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
   const [breakModalClosing, setBreakModalClosing] = useState(false);
   const [tick, setTick] = useState(0);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const originalTitleRef = useRef(document.title);
   const flasherRef = useRef<number | null>(null);
   const nextModeAfterBreakRef = useRef<PomodoroMode>("short");
@@ -296,8 +295,8 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
     const s = settingsRef.current;
     const title = "Focus complete ✅";
     const body = activeTaskTitleRef.current ? `Task: ${activeTaskTitleRef.current}` : "Take a break!";
+    void playNotificationSound(info.id);
     await tryNotify(title, body);
-    playChime(audioRef);
     vibrate();
     startTitleFlash(originalTitleRef, flasherRef);
     window.setTimeout(() => flashTitleStop(originalTitleRef, flasherRef), 20_000);
@@ -321,13 +320,13 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
     onRunningChangeRef.current?.(false);
   }, []);
 
-  const finishBreakSegment = useCallback(async () => {
+  const finishBreakSegment = useCallback(async (scheduledEnd: number) => {
     const m = modeRef.current;
     const s = settingsRef.current;
     const title =
       m === "short" ? "Short break over ☕" : "Long break over 🌿";
+    void playNotificationSound(`break-${scheduledEnd}`);
     await tryNotify(title, "Time to focus again!");
-    playChime(audioRef);
     vibrate();
     startTitleFlash(originalTitleRef, flasherRef);
     window.setTimeout(() => flashTitleStop(originalTitleRef, flasherRef), 20_000);
@@ -371,7 +370,7 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
         endingRef.current = false;
       });
     } else {
-      void finishBreakSegment().finally(() => {
+      void finishBreakSegment(scheduledEnd).finally(() => {
         endingRef.current = false;
       });
     }
@@ -389,15 +388,6 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
     }, 250);
     return () => window.clearInterval(id);
   }, [phase, endAt, handleSegmentEnd]);
-
-  useEffect(() => {
-    try {
-      if (audioRef.current) {
-        audioRef.current.src =
-          "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAAAACAAAAPGZmZmZmZmZm";
-      }
-    } catch {}
-  }, []);
 
   const flashStop = useCallback(() => {
     flashTitleStop(originalTitleRef, flasherRef);
@@ -419,6 +409,7 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
 
   const start = useCallback(
     (durMs?: number) => {
+      unlockNotificationAudio();
       if ("Notification" in window && Notification.permission === "default") {
         void Notification.requestPermission();
       }
@@ -466,6 +457,7 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
   }, [phase, endAt]);
 
   const resume = useCallback(() => {
+    unlockNotificationAudio();
     if (phase !== "paused" || pausedRemainingMs == null || pausedRemainingMs <= 0) return;
     setEndAt(Date.now() + pausedRemainingMs);
     setPhase("running");
@@ -620,7 +612,6 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
 
   return (
     <PomodoroContext.Provider value={value}>
-      <audio ref={audioRef} style={{ display: "none" }} aria-hidden />
       {children}
       {showBreakModal && (
         <BreakDialog

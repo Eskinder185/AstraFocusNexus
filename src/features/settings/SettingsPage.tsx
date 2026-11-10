@@ -1,13 +1,15 @@
 import React, { useState } from "react";
-import { Bell, Download, HardDrive, Monitor, Moon, Sun } from "lucide-react";
+import { Bell, Download, HardDrive, Monitor, Moon, Sun, Upload, Volume2 } from "lucide-react";
 import { PageHeader } from "../../components/PageHeader";
 import { useAppToast } from "../../context/AppToast";
 import { usePomodoro } from "../../context/PomodoroContext";
 import { useTheme, type ThemeMode } from "../../context/ThemeContext";
 import { cx } from "../../lib/cx";
 import { toDateKey } from "../../lib/dates";
+import { previewNotificationSound, readSoundPreferences, saveSoundPreferences, type SoundPreferences } from "../../lib/notificationSound";
 import { readAllEntries } from "../wellness/wellnessStore";
 import { LEGACY_BACKUP_KEY } from "../workspace/migrate";
+import { normalizeWorkspace, type WorkspaceData } from "../workspace/schema";
 import { PRIORITY_META, PRIORITY_ORDER } from "../workspace/priority";
 import type { Priority } from "../workspace/schema";
 import { useWorkspace, useWorkspaceActions } from "../workspace/WorkspaceProvider";
@@ -34,11 +36,18 @@ const THEMES: Array<{ id: ThemeMode; label: string; icon: React.ReactNode }> = [
 
 export const SettingsPage: React.FC = () => {
   const data = useWorkspace();
-  const { setPrefs } = useWorkspaceActions();
+  const { setPrefs, replaceData } = useWorkspaceActions();
   const { mode, setMode } = useTheme();
   const { settings } = usePomodoro();
   const { showToast } = useAppToast();
   const [perm, setPerm] = useState<NotificationPermission | "unsupported">(() => ("Notification" in window ? Notification.permission : "unsupported"));
+  const [pendingImport, setPendingImport] = useState<WorkspaceData | null>(null);
+  const [sound, setSound] = useState(readSoundPreferences);
+  const updateSound = (patch: Partial<SoundPreferences>) => {
+    const next = { ...sound, ...patch };
+    setSound(next);
+    if (!saveSoundPreferences(next)) showToast("Sound preference could not be saved on this device.", { tone: "warning" });
+  };
   const hasLegacyBackup = (() => {
     try {
       return localStorage.getItem(LEGACY_BACKUP_KEY) != null;
@@ -55,6 +64,7 @@ export const SettingsPage: React.FC = () => {
       workspace: data,
       wellness: data.prefs.wellnessEnabled ? readAllEntries() : [],
       focusSettings: settings,
+      notificationSound: sound,
     };
     download(`astrafocus-export-${toDateKey(new Date())}.json`, JSON.stringify(payload, null, 2));
     showToast("Export downloaded.", { tone: "success" });
@@ -63,6 +73,37 @@ export const SettingsPage: React.FC = () => {
   const exportLegacy = () => {
     const raw = localStorage.getItem(LEGACY_BACKUP_KEY);
     if (raw) download("astrafocus-v0.2-original-backup.json", raw);
+  };
+
+  const readImport = async (file?: File) => {
+    setPendingImport(null);
+    if (!file) return;
+    try {
+      if (file.size > 20 * 1024 * 1024) throw new Error("File is too large.");
+      const parsed: unknown = JSON.parse(await file.text());
+      const raw = typeof parsed === "object" && parsed !== null && "workspace" in parsed
+        ? (parsed as { workspace: unknown }).workspace : parsed;
+      const result = normalizeWorkspace(raw, Date.now());
+      if (!result) throw new Error("This file does not contain a supported AstraFocus workspace.");
+      if (result.dropped) throw new Error(`${result.dropped} records could not be validated. Nothing was imported.`);
+      setPendingImport(result.data);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Could not read this file.", { tone: "danger" });
+    }
+  };
+
+  const confirmImport = () => {
+    if (!pendingImport) return;
+    if (!window.confirm(`Replace your current workspace with ${pendingImport.tasks.length} tasks, ${pendingImport.goals.length} goals and ${pendingImport.projects.length} projects? A local backup will be saved first.`)) return;
+    try {
+      localStorage.setItem(`astra.backup.before-import.${Date.now()}`, JSON.stringify(data));
+    } catch {
+      showToast("Could not save a backup. Import was cancelled.", { tone: "danger" });
+      return;
+    }
+    replaceData(pendingImport);
+    setPendingImport(null);
+    showToast("Workspace restored. Your previous workspace is saved as a local backup.", { tone: "success" });
   };
 
   const requestNotifications = async () => {
@@ -129,6 +170,32 @@ export const SettingsPage: React.FC = () => {
             </button>
           )}
         </SettingRow>
+        <SettingRow label="Notification sound" description="A gentle two-tone chime for focus endings, break endings, and task reminders. Works while this page is open, subject to browser audio rules.">
+          <label className="switch">
+            <input type="checkbox" aria-label="Enable notification sound" checked={sound.enabled} onChange={e => updateSound({ enabled: e.target.checked })} />
+            <span>{sound.enabled ? "On" : "Off"}</span>
+          </label>
+        </SettingRow>
+        <SettingRow label="Sound volume" description="Default is 30%.">
+          <div className="row">
+            <label htmlFor="notification-volume" className="visually-hidden">Notification sound volume</label>
+            <input id="notification-volume" type="range" min="0" max="100" step="5" value={Math.round(sound.volume * 100)}
+              disabled={!sound.enabled} onChange={e => updateSound({ volume: Number(e.target.value) / 100 })} />
+            <output htmlFor="notification-volume" className="tabular">{Math.round(sound.volume * 100)}%</output>
+          </div>
+        </SettingRow>
+        <SettingRow label="Task completion sound" description="Optional quieter cue when you complete a task.">
+          <label className="switch">
+            <input type="checkbox" aria-label="Task completion sound" checked={sound.taskCompletion} disabled={!sound.enabled} onChange={e => updateSound({ taskCompletion: e.target.checked })} />
+            <span>{sound.taskCompletion ? "On" : "Off"}</span>
+          </label>
+        </SettingRow>
+        <SettingRow label="Test sound" description="Tap to preview. Your browser may require this interaction before automatic chimes can play.">
+          <button type="button" className="btn btn--sm" disabled={!sound.enabled || sound.volume === 0}
+            onClick={() => void previewNotificationSound().then(ok => { if (!ok) showToast("Audio is blocked or unavailable in this browser.", { tone: "warning" }); })}>
+            <Volume2 size={15} aria-hidden /> Test sound
+          </button>
+        </SettingRow>
       </SettingsSection>
 
       <SettingsSection title="Privacy">
@@ -148,11 +215,20 @@ export const SettingsPage: React.FC = () => {
             removes it. Export regularly if your work matters to you.
           </p>
         </div>
-        <SettingRow label="Export everything" description={`${data.tasks.length} tasks, ${data.goals.length} goals, ${data.focusSessions.length} focus sessions as JSON.`}>
+        <SettingRow label="Export everything" description={`${data.tasks.length} tasks, ${data.goals.length} goals, ${data.projects.length} projects, ${data.focusSessions.length} focus sessions as JSON.`}>
           <button type="button" className="btn btn--sm" onClick={exportAll}>
             <Download size={14} aria-hidden /> Export
           </button>
         </SettingRow>
+        <SettingRow label="Restore workspace" description="Choose an AstraFocus JSON export. Review its record counts before replacing your current workspace. Wellness and timer settings are not changed.">
+          <label className="btn btn--sm" htmlFor="workspace-import"><Upload size={14} aria-hidden /> Choose file</label>
+          <input id="workspace-import" className="visually-hidden" type="file" accept=".json,application/json" onChange={e => void readImport(e.target.files?.[0])} />
+        </SettingRow>
+        {pendingImport && <div className="data-note" role="status">
+          <span>Ready to restore: {pendingImport.tasks.length} tasks, {pendingImport.goals.length} goals, {pendingImport.projects.length} projects, {pendingImport.focusSessions.length} focus sessions.</span>
+          <button type="button" className="btn btn--primary btn--sm" onClick={confirmImport}>Restore workspace</button>
+          <button type="button" className="btn btn--sm" onClick={() => setPendingImport(null)}>Cancel</button>
+        </div>}
         {hasLegacyBackup && (
           <SettingRow label="Original v0.2 data" description="An untouched copy of your data from before this upgrade.">
             <button type="button" className="btn btn--sm btn--ghost" onClick={exportLegacy}>

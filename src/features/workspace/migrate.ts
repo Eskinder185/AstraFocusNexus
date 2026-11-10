@@ -9,7 +9,8 @@ import {
   type WorkspaceData,
 } from "./schema";
 
-export const WORKSPACE_KEY = "astra.workspace.v1";
+export const WORKSPACE_KEY = "astra.workspace.v2";
+export const PREVIOUS_WORKSPACE_KEY = "astra.workspace.v1";
 export const LEGACY_BACKUP_KEY = "astra.backup.legacy-v0";
 
 /** Keys written by AstraFocus Nexus ≤ 0.2 (Create React App build). Never deleted by this app. */
@@ -20,7 +21,8 @@ export const LEGACY_KEYS = {
 } as const;
 
 export type LoadStatus =
-  | "loaded" // existing v1 workspace
+  | "loaded" // existing v2 workspace
+  | "upgraded" // imported v1 workspace without modifying its key
   | "fresh" // nothing stored anywhere
   | "migrated" // imported from legacy keys
   | "recovered"; // v1 data was unreadable; preserved it and rebuilt from legacy keys
@@ -175,9 +177,10 @@ export function loadWorkspace(store: KeyValueStore, now = Date.now()): LoadResul
   let status: LoadStatus = "migrated";
 
   if (raw != null) {
-    const normalized = normalizeWorkspace(parse(raw), now);
+    const parsed = parse(raw);
+    const normalized = normalizeWorkspace(parsed, now);
     if (normalized) {
-      return { data: normalized.data, status: "loaded", dropped: normalized.dropped, needsWrite: normalized.dropped > 0 };
+      return { data: normalized.data, status: "loaded", dropped: normalized.dropped, needsWrite: normalized.dropped > 0 || (parsed as { version?: number }).version !== 2 };
     }
     try {
       store.setItem(`${WORKSPACE_KEY}.unreadable.${now}`, raw);
@@ -185,6 +188,14 @@ export function loadWorkspace(store: KeyValueStore, now = Date.now()): LoadResul
       /* best effort: if this fails we still must not lose legacy data */
     }
     status = "recovered";
+  }
+
+  // v1 remains untouched so an older open tab cannot erase projects or work blocks.
+  const previous = store.getItem(PREVIOUS_WORKSPACE_KEY);
+  if (previous != null) {
+    const normalized = normalizeWorkspace(parse(previous), now);
+    if (normalized) return { data: normalized.data, status: "upgraded", dropped: normalized.dropped, needsWrite: true };
+    try { store.setItem(`${PREVIOUS_WORKSPACE_KEY}.unreadable.${now}`, previous); } catch { /* original remains */ }
   }
 
   const legacy = importLegacy(store, now);

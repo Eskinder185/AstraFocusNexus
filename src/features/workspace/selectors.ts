@@ -158,7 +158,7 @@ export function buildInsights(data: WorkspaceData, now: Date, limit = 3): Insigh
     }
   }
 
-  const unscheduled = data.tasks.filter(t => isOpen(t) && !t.dueDate && (t.priority === "UI" || t.priority === "NI")).length;
+  const unscheduled = data.tasks.filter(t => isOpen(t) && !t.dueDate && !t.scheduledAt && (t.priority === "UI" || t.priority === "NI")).length;
   if (unscheduled > 0) {
     out.push({
       id: "unscheduled",

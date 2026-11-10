@@ -365,8 +365,15 @@
 }
 .focus-card__info {
   min-width: 0;
+  flex: 1 1 0;
   display: grid;
+  /* An implicit `auto` track can't shrink below the button row's min-content width;
+     minmax(0, 1fr) lets the column fit narrow phones so the title can ellipsize. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-1-5);
+}
+.focus-card__info .row {
+  flex-wrap: wrap;
 }
 .focus-card__state {
   font-weight: 600;

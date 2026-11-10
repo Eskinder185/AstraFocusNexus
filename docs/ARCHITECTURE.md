@@ -61,16 +61,19 @@ Rule: **domain logic lives in `features/workspace` as pure functions**; componen
 ```ts
 Task         { id, title, notes, status: "todo"|"done", priority: "UI"|"NI"|"UN"|"NN",
                dueDate: "YYYY-MM-DD"|null, dueTime: "HH:mm"|null, remind, reminderSentAt,
-               goalId, pomodoros, createdAt, updatedAt, completedAt, legacyId? }
+               goalId, projectId?, scheduledAt?, estimateMin?, pomodoros,
+               createdAt, updatedAt, completedAt, legacyId? }
 Goal         { id, title, emoji, targetDate, createdAt, updatedAt, legacyId? }
+Project      { id, title, notes, targetDate, goalId, createdAt, updatedAt }
 FocusSession { id, taskId, endedAt, focusedMs, completed }
 Prefs        { defaultGoalId, defaultPriority, activeTaskId, wellnessEnabled }
-WorkspaceData{ version: 1, tasks, goals, focusSessions, prefs, migrations[] }
+WorkspaceData{ version: 2, tasks, goals, projects, focusSessions, prefs, migrations[] }
 ```
 
 Design notes:
 - Dates are **local calendar dates** plus an optional local time, never `Date.parse("YYYY-MM-DD")` (which is UTC). A date-only task becomes overdue at the end of its day.
 - Relationships use **stable ids**, never display names.
+- `scheduledAt` is a planned work timestamp distinct from the deadline. One task record appears across list, calendar and focus.
 - Cross-field invariants are enforced in the reducer (`remind` requires a time; changing the due time re-arms the reminder; a time is cleared with its date).
 - Wellness check-ins stay in their v0.2 per-day keys (`wellness.entry.*`). They are private and deliberately kept out of the workspace document, so a future sync can exclude them by default.
 
@@ -78,16 +81,19 @@ Design notes:
 
 ```
 startup → loadWorkspace(localStorage)
-  ├─ astra.workspace.v1 valid?          → use it (invalid records dropped, counted)
-  ├─ present but unreadable?            → copy to astra.workspace.v1.unreadable.<ts>, then ↓
+  ├─ astra.workspace.v2 valid?          → use it (invalid records dropped, counted)
+  ├─ present but unreadable?            → copy to astra.workspace.v2.unreadable.<ts>, then ↓
+  ├─ astra.workspace.v1 valid?          → upgrade in memory, retain v1, write v2
   └─ legacy task-tracker.* keys exist?  → back up once to astra.backup.legacy-v0,
                                           convert with deterministic ids, record migration
 ```
 
 - Legacy keys are **never** written or deleted.
+- The v1 workspace key is retained. An older tab cannot erase v2 project or scheduling fields, though edits made in the old tab after migration will not merge into v2.
 - After each state change the provider serialises and writes the workspace (skipped if unchanged). Write failures (quota, disabled storage) raise one persistent error toast.
 - A `storage` event listener keeps multiple tabs consistent; echo loops are prevented by comparing serialised payloads.
 - Export (Settings) produces a JSON file with the workspace, wellness entries (if enabled) and timer settings.
+- Import validates workspace records, previews counts, and saves a local backup before replacing workspace data. Wellness and timer settings are not restored.
 
 ## 5. Focus timer integration
 

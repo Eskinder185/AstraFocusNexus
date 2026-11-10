@@ -23,10 +23,16 @@ export interface Task {
   dueDate: string | null;
   /** Local time, "HH:mm". Only meaningful when dueDate is set. */
   dueTime: string | null;
+  /** Planned work block start (epoch milliseconds), distinct from the deadline. */
+  scheduledAt?: number | null;
+  /** Planned work duration in minutes. */
+  estimateMin?: number | null;
   /** Send a reminder at the due date + time. Requires dueTime. */
   remind: boolean;
   reminderSentAt: number | null;
   goalId: string | null;
+  /** Project groups work; a goal represents an outcome. */
+  projectId?: string | null;
   /** Completed Pomodoro focus segments linked to this task. */
   pomodoros: number;
   createdAt: number;
@@ -44,6 +50,16 @@ export interface Goal {
   createdAt: number;
   updatedAt: number;
   legacyId?: number;
+}
+
+export interface Project {
+  id: string;
+  title: string;
+  notes: string;
+  targetDate: string | null;
+  goalId: string | null;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface FocusSession {
@@ -73,9 +89,10 @@ export interface MigrationRecord {
 }
 
 export interface WorkspaceData {
-  version: 1;
+  version: 2;
   tasks: Task[];
   goals: Goal[];
+  projects: Project[];
   focusSessions: FocusSession[];
   prefs: Prefs;
   migrations: MigrationRecord[];
@@ -89,7 +106,7 @@ export const DEFAULT_PREFS: Prefs = {
 };
 
 export function emptyWorkspace(): WorkspaceData {
-  return { version: 1, tasks: [], goals: [], focusSessions: [], prefs: { ...DEFAULT_PREFS }, migrations: [] };
+  return { version: 2, tasks: [], goals: [], projects: [], focusSessions: [], prefs: { ...DEFAULT_PREFS }, migrations: [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -123,9 +140,12 @@ export function normalizeTask(raw: unknown, now: number): Task | null {
     priority: isPriority(raw.priority) ? raw.priority : "NN",
     dueDate,
     dueTime,
+    scheduledAt: numOrNull(raw.scheduledAt),
+    estimateMin: typeof raw.estimateMin === "number" && Number.isInteger(raw.estimateMin) && raw.estimateMin >= 5 && raw.estimateMin <= 720 ? raw.estimateMin : null,
     remind: raw.remind === true && !!dueTime,
     reminderSentAt: numOrNull(raw.reminderSentAt),
     goalId: typeof raw.goalId === "string" && raw.goalId ? raw.goalId : null,
+    projectId: typeof raw.projectId === "string" && raw.projectId ? raw.projectId : null,
     pomodoros: Math.max(0, Math.floor(num(raw.pomodoros, 0))),
     createdAt,
     updatedAt: num(raw.updatedAt, createdAt),
@@ -151,6 +171,20 @@ export function normalizeGoal(raw: unknown, now: number): Goal | null {
   };
 }
 
+export function normalizeProject(raw: unknown, now: number): Project | null {
+  if (!isObj(raw)) return null;
+  const id = str(raw.id).trim();
+  const title = str(raw.title).trim();
+  if (!id || !title) return null;
+  const createdAt = num(raw.createdAt, now);
+  return {
+    id, title: title.slice(0, 200), notes: str(raw.notes).slice(0, 20_000),
+    targetDate: isDateKey(raw.targetDate) ? raw.targetDate : null,
+    goalId: typeof raw.goalId === "string" && raw.goalId ? raw.goalId : null,
+    createdAt, updatedAt: num(raw.updatedAt, createdAt),
+  };
+}
+
 export function normalizeSession(raw: unknown): FocusSession | null {
   if (!isObj(raw)) return null;
   const id = str(raw.id);
@@ -171,9 +205,9 @@ function uniqueBy<T extends { id: string }>(items: T[]): T[] {
   return items.filter(i => (seen.has(i.id) ? false : (seen.add(i.id), true)));
 }
 
-/** Returns a fully valid workspace, or null when `raw` is not a v1 workspace at all. */
+/** Upgrades supported workspace versions to the current in-memory schema. */
 export function normalizeWorkspace(raw: unknown, now: number): { data: WorkspaceData; dropped: number } | null {
-  if (!isObj(raw) || raw.version !== 1) return null;
+  if (!isObj(raw) || (raw.version !== 1 && raw.version !== 2)) return null;
   let dropped = 0;
   const collect = <T,>(list: unknown, fn: (x: unknown) => T | null): T[] => {
     if (!Array.isArray(list)) return [];
@@ -187,8 +221,13 @@ export function normalizeWorkspace(raw: unknown, now: number): { data: Workspace
   };
   const goals = uniqueBy(collect(raw.goals, g => normalizeGoal(g, now)));
   const goalIds = new Set(goals.map(g => g.id));
+  const projects = uniqueBy(collect(raw.projects, p => normalizeProject(p, now))).map(p =>
+    p.goalId && !goalIds.has(p.goalId) ? { ...p, goalId: null } : p
+  );
+  const projectIds = new Set(projects.map(p => p.id));
   const tasks = uniqueBy(collect(raw.tasks, t => normalizeTask(t, now))).map(t =>
-    t.goalId && !goalIds.has(t.goalId) ? { ...t, goalId: null } : t
+    ({ ...t, goalId: t.goalId && goalIds.has(t.goalId) ? t.goalId : null,
+      projectId: t.projectId && projectIds.has(t.projectId) ? t.projectId : null })
   );
   const focusSessions = uniqueBy(collect(raw.focusSessions, normalizeSession));
   const p = isObj(raw.prefs) ? raw.prefs : {};
@@ -200,5 +239,5 @@ export function normalizeWorkspace(raw: unknown, now: number): { data: Workspace
     wellnessEnabled: p.wellnessEnabled !== false,
   };
   const migrations = Array.isArray(raw.migrations) ? (raw.migrations.filter(isObj) as unknown as MigrationRecord[]) : [];
-  return { data: { version: 1, tasks, goals, focusSessions, prefs, migrations }, dropped };
+  return { data: { version: 2, tasks, goals, projects, focusSessions, prefs, migrations }, dropped };
 }

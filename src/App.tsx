@@ -6,6 +6,9 @@ import { AppToastProvider } from "./context/AppToast";
 import { PomodoroProvider, type FocusSegmentInfo } from "./context/PomodoroContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { FocusPage } from "./features/focus/FocusPage";
+import { CalendarPage } from "./features/calendar/CalendarPage";
+import { AnalyticsPage } from "./features/analytics/AnalyticsPage";
+import { ProjectsPage } from "./features/projects/ProjectsPage";
 import { GoalsPage } from "./features/goals/GoalsPage";
 import { HelpPage } from "./features/help/HelpPage";
 import { MatrixPage } from "./features/matrix/MatrixPage";
@@ -50,6 +53,9 @@ const App: React.FC = () => (
                 <Routes>
                   <Route path="/" element={<OverviewPage />} />
                   <Route path="/tasks" element={<TasksPage />} />
+                  <Route path="/calendar" element={<CalendarPage />} />
+                  <Route path="/analytics" element={<AnalyticsPage />} />
+                  <Route path="/projects" element={<ProjectsPage />} />
                   <Route path="/focus" element={<FocusPage />} />
                   <Route path="/matrix" element={<MatrixPage />} />
                   <Route path="/goals" element={<GoalsPage />} />

@@ -91,6 +91,13 @@ function useIdleNudge() {
 }
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [online, setOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => { window.removeEventListener("online", update); window.removeEventListener("offline", update); };
+  }, []);
   const location = useLocation();
   const isTablet = useMediaQuery("(min-width: 768px) and (max-width: 1099px)");
   const [collapsedPref, setCollapsedPref] = useState(() => {
@@ -142,6 +149,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
       <Sidebar collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
       {isTablet && tabletExpanded && <div className="sidebar-scrim" onClick={() => setTabletExpanded(false)} aria-hidden />}
       <div className="app__main">
+        {!online && <div className="offline-banner" role="status">Offline · changes stay on this device and will be available when you return.</div>}
         <Topbar />
         <main id="main" ref={mainRef} tabIndex={-1} className="page" key={location.pathname}>
           {children}

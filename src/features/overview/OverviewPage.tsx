@@ -23,6 +23,7 @@ import { useNow } from "../../hooks/useNow";
 import { cx } from "../../lib/cx";
 import { addDays, formatClock, formatDuration, formatTime, greeting, longDate, toDateKey } from "../../lib/dates";
 import { useFocusOnTask } from "../focus/useFocusOnTask";
+import { suggestSlot } from "../calendar/planner";
 import { InlineQuickAdd } from "../tasks/TaskComposer";
 import { TaskRow } from "../tasks/TaskRow";
 import {
@@ -42,6 +43,10 @@ export const OverviewPage: React.FC = () => {
 
   const groups = useMemo(() => groupOpenTasks(data.tasks, now), [data.tasks, now]);
   const top = useMemo(() => topPriorities(data.tasks, 3), [data.tasks]);
+  const next = top[0];
+  const nextGoal = next?.goalId ? data.goals.find(g => g.id === next.goalId) : undefined;
+  const scheduledToday = data.tasks.filter(t => t.status === "todo" && t.scheduledAt != null && toDateKey(new Date(t.scheduledAt)) === toDateKey(now));
+  const scheduledMinutes = scheduledToday.reduce((sum, t) => sum + (t.estimateMin ?? 30), 0);
   const focusToday = focusOnDay(data.focusSessions, now);
   const doneToday = completedOnDay(data.tasks, now);
   const dueTodayTotal = data.tasks.filter(t => t.dueDate === toDateKey(now)).length;
@@ -72,6 +77,8 @@ export const OverviewPage: React.FC = () => {
         </button>
       </header>
 
+      {next && <NextAction task={next} goalTitle={nextGoal?.title} now={now} />}
+
       <section className="stat-strip card" aria-label="Today at a glance">
         <Stat icon={<CalendarClock size={16} />} label="Due today" value={groups.today.length} detail={dueTodayTotal ? `${dueTodayTotal - groups.today.length} of ${dueTodayTotal} done` : "Nothing scheduled"} />
         <Stat
@@ -83,7 +90,7 @@ export const OverviewPage: React.FC = () => {
         />
         <Stat icon={<CheckCircle2 size={16} />} label="Done today" value={doneToday} tone={doneToday ? "success" : undefined} detail={doneToday ? "Keep the momentum" : "First win is the hardest"} />
         <Stat icon={<Timer size={16} />} label="Focused today" value={focusToday.ms ? formatDuration(focusToday.ms) : "0m"} detail={`${focusToday.sessions} ${focusToday.sessions === 1 ? "session" : "sessions"}`} />
-        <Stat icon={<Target size={16} />} label="Active goals" value={data.goals.length} detail={data.goals.length ? "Linked to your tasks" : "None yet"} />
+        <Stat icon={<CalendarClock size={16} />} label="Planned work" value={formatDuration(scheduledMinutes * 60_000)} detail={scheduledToday.length ? `${scheduledToday.length} work blocks` : "No work blocks yet"} />
       </section>
 
       {isEmpty ? (
@@ -111,25 +118,25 @@ export const OverviewPage: React.FC = () => {
       ) : (
         <div className="overview__grid">
           <div className="overview__main">
-            <section className="card" aria-labelledby="ov-priorities">
+            {top.length > 1 && <section className="card" aria-labelledby="ov-priorities">
               <div className="card__header">
                 <h2 id="ov-priorities" className="card__title">
-                  <Flame size={16} aria-hidden /> Top priorities
+                  <Flame size={16} aria-hidden /> Other priorities
                 </h2>
                 <Link to="/matrix" className="btn btn--ghost btn--sm">
                   Matrix <ArrowRight size={14} aria-hidden />
                 </Link>
               </div>
               <div className="card__body card__body--list">
-                {top.length ? (
-                  <PriorityList now={now} />
+                {top.length > 1 ? (
+                  <PriorityList now={now} excludeId={next?.id} />
                 ) : (
                   <EmptyState compact icon={<CheckCircle2 size={18} />} title="Nothing open">
                     Every task is done. Add what’s next when you’re ready.
                   </EmptyState>
                 )}
               </div>
-            </section>
+            </section>}
 
             <section className="card" aria-labelledby="ov-today">
               <div className="card__header">
@@ -216,10 +223,39 @@ const Stat: React.FC<{ icon: React.ReactNode; label: string; value: React.ReactN
   </div>
 );
 
-const PriorityList: React.FC<{ now: Date }> = ({ now }) => {
+const NextAction: React.FC<{ task: import("../workspace/schema").Task; goalTitle?: string; now: Date }> = ({ task, goalTitle, now }) => {
+  const { openTask } = useUIActions();
+  const { updateTask } = useWorkspaceActions();
+  const focusOnTask = useFocusOnTask();
+  const { tasks } = useWorkspace();
+  const suggested = task.scheduledAt ? null : suggestSlot(task, tasks, now);
+  return <section className="card next-action" aria-labelledby="next-action-title">
+    <div>
+      <p className="eyebrow">Next best action · based on priority and deadline</p>
+      <h2 id="next-action-title">{task.title}</h2>
+      <p className="subtle">
+        {task.priority === "UI" ? "Do first" : task.priority === "NI" ? "Important" : "Next task"}
+        {" · "}{task.estimateMin ? `${task.estimateMin} min estimated` : "Set an estimate"}
+        {task.dueDate ? ` · Due ${new Date(task.dueDate + "T12:00:00").toLocaleDateString()}` : ""}
+        {goalTitle ? ` · ${goalTitle}` : ""}
+      </p>
+      {task.scheduledAt && <p className="subtle">Planned {new Date(task.scheduledAt).toLocaleString()}</p>}
+      {suggested && <p className="subtle">Open slot: {new Date(suggested.at).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" })} · {suggested.durationMin} min. Based on existing work blocks, 9 AM–5 PM.</p>}
+    </div>
+    <div className="row row--wrap">
+      <button type="button" className="btn btn--primary" onClick={() => focusOnTask(task.id)}><Play size={16} aria-hidden /> Start focus</button>
+      <button type="button" className="btn" onClick={() => openTask(task.id)}>Details</button>
+      {task.dueDate && <button type="button" className="btn btn--ghost" onClick={() => updateTask(task.id, { dueDate: toDateKey(addDays(now, 1)) })}>Move deadline to tomorrow</button>}
+      <Link to="/calendar" className="btn btn--ghost">Schedule</Link>
+      {suggested && <button type="button" className="btn btn--ghost" title={suggested.reason} onClick={() => updateTask(task.id, { scheduledAt: suggested.at })}>Use open slot</button>}
+    </div>
+  </section>;
+};
+
+const PriorityList: React.FC<{ now: Date; excludeId?: string }> = ({ now, excludeId }) => {
   const { tasks } = useWorkspace();
   const { updateTask } = useWorkspaceActions();
-  const top = topPriorities(tasks, 3);
+  const top = topPriorities(tasks, 3).filter(t => t.id !== excludeId);
   const tomorrow = toDateKey(addDays(now, 1));
   return (
     <ol role="list" className="task-list task-list--ranked">
@@ -324,6 +360,9 @@ const TimelineCard: React.FC<{ now: Date }> = ({ now }) => {
   const items = useMemo(() => {
     const out: Array<{ id: string; at: number; label: string; kind: "task" | "focus"; done?: boolean; time: string }> = [];
     for (const t of tasks) {
+      if (t.scheduledAt && toDateKey(new Date(t.scheduledAt)) === key) {
+        out.push({ id: `block-${t.id}`, at: t.scheduledAt, label: `${t.title} · ${t.estimateMin ?? 30} min planned`, kind: "task", done: t.status === "done", time: formatClock(t.scheduledAt) });
+      }
       if (t.dueDate === key && t.dueTime) {
         const [h, m] = t.dueTime.split(":").map(Number);
         out.push({ id: t.id, at: new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m).getTime(), label: t.title, kind: "task", done: t.status === "done", time: formatTime(t.dueTime) });

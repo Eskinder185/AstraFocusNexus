@@ -27,7 +27,7 @@ export const TaskPanel: React.FC = () => {
 };
 
 const TaskPanelContent: React.FC<{ task: Task; onClose: () => void }> = ({ task, onClose }) => {
-  const { goals, focusSessions, prefs } = useWorkspace();
+  const { goals, projects, focusSessions, prefs } = useWorkspace();
   const { updateTask, toggleTask, deleteTask, setPrefs } = useWorkspaceActions();
   const focusOnTask = useFocusOnTask();
   const now = useNow();
@@ -191,6 +191,25 @@ const TaskPanelContent: React.FC<{ task: Task; onClose: () => void }> = ({ task,
                   {g.emoji} {g.title}
                 </option>
               ))}
+            </select>
+          </div>
+          <div className="field task-panel__span">
+            <label className="label" htmlFor="tp-scheduled">Planned work start</label>
+            <input id="tp-scheduled" type="datetime-local" className="input"
+              value={task.scheduledAt ? new Date(task.scheduledAt - new Date(task.scheduledAt).getTimezoneOffset() * 60_000).toISOString().slice(0, 16) : ""}
+              onChange={e => updateTask(task.id, { scheduledAt: e.target.value ? new Date(e.target.value).getTime() : null })} />
+          </div>
+          <div className="field">
+            <label className="label" htmlFor="tp-estimate">Estimated minutes</label>
+            <input id="tp-estimate" type="number" min={5} max={720} step={5} className="input"
+              value={task.estimateMin ?? ""}
+              onChange={e => updateTask(task.id, { estimateMin: e.target.value ? Number(e.target.value) : null })} />
+          </div>
+          <div className="field task-panel__span">
+            <label className="label" htmlFor="tp-project">Project</label>
+            <select id="tp-project" className="select" value={task.projectId ?? ""} onChange={e => updateTask(task.id, { projectId: e.target.value || null })}>
+              <option value="">No project</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
             </select>
           </div>
           <div className="field task-panel__span">
