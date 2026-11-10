@@ -70,3 +70,40 @@
 .projects-detail { display: grid; gap: 1rem; }
 .projects-detail .field { max-width: 40rem; }
 @media (max-width: 767px) { .projects-layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Task schedule (start + due) ---------- */
+/* Two rows — Start (date, time) and Due (date, time) — so native date/time inputs never overlap. */
+.schedule-fields { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); margin: 0; padding: 0; border: 0; min-width: 0; }
+.schedule-fields__legend { padding: 0; margin-bottom: var(--space-1); }
+.schedule-fields__group { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-2) var(--space-4); min-width: 0; align-items: start; }
+.schedule-fields .input { min-width: 0; }
+.schedule-fields__unsaved { color: var(--warning); }
+.field-error { font-size: var(--text-xs); color: var(--danger); overflow-wrap: anywhere; }
+.input.is-invalid { border-color: var(--danger); }
+.input.is-invalid:focus-visible { outline-color: var(--danger); }
+.task-row__schedule { max-width: 100%; }
+.task-row__schedule > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.qa-inline__schedule { flex: none; }
+/* Without an explicit width the input's intrinsic ~20-character width feeds the min-content
+   size of grid columns (e.g. matrix quadrants on phones). flex: 1 still makes it fill the row. */
+.qa-inline__input { width: 0; }
+/* Icon-only where space is tight (matrix quadrants, phones); the button keeps aria-label="Schedule". */
+.quadrant .qa-inline__schedule-label { display: none; }
+.quadrant .qa-inline__schedule { padding-inline: var(--space-2); }
+@media (max-width: 480px) {
+  .qa-inline__schedule-label { display: none; }
+  .qa-inline__schedule { padding-inline: var(--space-2); }
+}
+@media (max-width: 340px) {
+  .schedule-fields__group { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Calendar: start→due schedule items (distinct from work blocks) */
+.calendar-span { display: grid; gap: .15rem; width: 100%; margin-bottom: .3rem; padding: .4rem .45rem; border: 1px dashed var(--accent); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--accent-soft) 55%, transparent); color: var(--text); text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.calendar-span strong { font-size: var(--text-sm); }
+.calendar-span span { color: var(--text-2); font-size: var(--text-xs); }
+.calendar-span:hover { background: var(--accent-soft); }
+.calendar-span:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.calendar-span.is-done { opacity: .55; }
+.calendar-grid__allday { min-height: 2.5rem; background: var(--surface-2); }
+.calendar-grid__allday-label { background: var(--surface-2); }

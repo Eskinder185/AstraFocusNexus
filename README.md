@@ -12,7 +12,7 @@ AstraFocus is a calm productivity workspace that brings tasks, priorities, goals
 ## What it does today
 
 - **Overview:** today at a glance, top priorities, a timeline of today's timed tasks and focus sessions, goal progress, and insights drawn only from your data.
-- **Tasks:** natural-language capture (`Lab report thu 9am !1`), smart grouping (overdue, today, upcoming, no date), filters, a detail panel, and undo.
+- **Tasks:** natural-language capture (`Lab report thu 9am !1`), optional start and due dates with optional times (validated so a task can't be due before it starts), smart grouping (overdue, today, upcoming, no date), filters, a detail panel, and undo. Tasks with both a start and a due date appear on the Calendar as dashed schedule items.
 - **Focus Studio:** a Pomodoro timer that survives navigation, refresh and sleep; linked tasks; atmospheres; distraction-free mode; ambient noise generated on-device.
 - **Priority Matrix:** Eisenhower quadrants with drag-and-drop and a keyboard alternative.
 - **Goals:** progress from the linked work you actually finish, the next action, and time invested.

@@ -1,6 +1,7 @@
 import { addDays, formatDuration, fromDateKey, startOfDay, toDateKey } from "../../lib/dates";
 import { PRIORITY_META } from "./priority";
 import type { FocusSession, Goal, Task, WorkspaceData } from "./schema";
+import { listDayKey } from "./schedule";
 
 /** Moment a task becomes overdue: its due time, or the end of its due day when no time is set. */
 export function dueTimestamp(t: Pick<Task, "dueDate" | "dueTime">): number | null {
@@ -53,9 +54,11 @@ export function groupOpenTasks(tasks: Task[], now: Date): TaskGroups {
   const todayKey = toDateKey(now);
   for (const t of tasks) {
     if (!isOpen(t)) continue;
+    // Overdue is decided by the due value only; a start date never makes a task overdue.
+    const day = listDayKey(t, now);
     if (isOverdue(t, now)) g.overdue.push(t);
-    else if (t.dueDate === todayKey) g.today.push(t);
-    else if (t.dueDate) g.upcoming.push(t);
+    else if (day === todayKey) g.today.push(t);
+    else if (day) g.upcoming.push(t);
     else g.someday.push(t);
   }
   g.overdue.sort(compareByDue);

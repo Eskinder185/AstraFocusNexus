@@ -4,10 +4,11 @@ import { useUIActions } from "../../app/ui";
 import { useAppToast } from "../../context/AppToast";
 import { playNotificationSound } from "../../lib/notificationSound";
 import { cx } from "../../lib/cx";
-import { formatTime, relativeDayLabel } from "../../lib/dates";
+import { formatTime, relativeDayLabel, toDateKey } from "../../lib/dates";
 import { useFocusOnTask } from "../focus/useFocusOnTask";
 import { PRIORITY_META } from "../workspace/priority";
 import type { Goal, Task } from "../workspace/schema";
+import { formatSchedule, listDayKey } from "../workspace/schedule";
 import { isOverdue } from "../workspace/selectors";
 import { useWorkspace, useWorkspaceActions } from "../workspace/WorkspaceProvider";
 
@@ -26,6 +27,22 @@ interface Props {
 }
 
 export function DueChip({ task, now }: { task: Task; now: Date }) {
+  const schedule = formatSchedule(task, now);
+  if (schedule) {
+    // Start (and maybe due) in one compact chip; the full wording is in the tooltip.
+    // Overdue still comes from the due value only.
+    const overdue = isOverdue(task, now);
+    const today = listDayKey(task, now) === toDateKey(now);
+    return (
+      <span className={cx("chip task-row__schedule", overdue ? "chip--danger" : today ? "chip--accent" : undefined)} title={schedule.full}>
+        <CalendarClock size={12} aria-hidden />
+        <span>
+          {overdue && <span className="visually-hidden">Overdue: </span>}
+          {schedule.short}
+        </span>
+      </span>
+    );
+  }
   if (!task.dueDate) return null;
   const overdue = isOverdue(task, now);
   const label = relativeDayLabel(task.dueDate, now) + (task.dueTime ? ` · ${formatTime(task.dueTime)}` : "");

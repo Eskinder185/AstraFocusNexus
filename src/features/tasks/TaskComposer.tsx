@@ -9,6 +9,8 @@ import { PRIORITY_META, PRIORITY_ORDER } from "../workspace/priority";
 import { parseQuickAdd, type QuickAddIgnore } from "../workspace/quickAdd";
 import type { Priority } from "../workspace/schema";
 import { useWorkspace, useWorkspaceActions } from "../workspace/WorkspaceProvider";
+import { validateSchedule, type ScheduleValue } from "../workspace/schedule";
+import { ScheduleFields } from "./ScheduleFields";
 
 interface Overrides {
   priority?: Priority;
@@ -17,6 +19,8 @@ interface Overrides {
   goalId?: string | null;
   projectId?: string | null;
   remind?: boolean;
+  startDate?: string | null;
+  startTime?: string | null;
 }
 
 /** Shared parsing + chips for quick add. Explicit field values always win over parsed text. */
@@ -85,10 +89,22 @@ export const InlineQuickAdd: React.FC<{ placeholder?: string; defaults?: Overrid
   label = "Add a task",
 }) => {
   const { addTask } = useWorkspaceActions();
+  const { openComposer } = useUIActions();
   const qa = useQuickAdd("");
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
   const canAdd = qa.parsed.title.trim().length > 0;
+
+  /** Open the full form (start + due dates and times) with whatever was typed so far. */
+  const openSchedule = () => {
+    openComposer({
+      title: qa.text,
+      ...(defaults.goalId !== undefined ? { goalId: defaults.goalId } : {}),
+      ...(defaults.priority ? { priority: defaults.priority } : {}),
+      ...(defaults.dueDate !== undefined ? { dueDate: defaults.dueDate } : {}),
+    });
+    qa.reset();
+  };
 
   const submit = () => {
     if (!canAdd) return;
@@ -127,6 +143,9 @@ export const InlineQuickAdd: React.FC<{ placeholder?: string; defaults?: Overrid
           autoComplete="off"
           enterKeyHint="done"
         />
+        <button type="button" className="btn btn--sm btn--ghost qa-inline__schedule" onClick={openSchedule} aria-label="Schedule" title="Set start and due dates and times">
+          <CalendarClock size={14} aria-hidden /> <span className="qa-inline__schedule-label">Schedule</span>
+        </button>
         {canAdd && (
           <button type="submit" className="btn btn--sm btn--primary">
             Add <CornerDownLeft size={13} aria-hidden />
@@ -160,12 +179,17 @@ const ComposerForm: React.FC<{ defaults: Overrides & { title?: string }; onClose
   const dueTime = dueDate ? (manual.dueTime !== undefined ? manual.dueTime : p.dueTime) ?? null : null;
   const goalId = manual.goalId !== undefined ? manual.goalId : defaults.goalId !== undefined ? defaults.goalId : prefs.defaultGoalId;
   const projectId = manual.projectId !== undefined ? manual.projectId : defaults.projectId ?? null;
+  const startDate = manual.startDate ?? null;
+  const startTime = startDate ? manual.startTime ?? null : null;
+  const schedule: ScheduleValue = { startDate, startTime, dueDate, dueTime };
+  const scheduleErrors = validateSchedule(schedule);
+  const scheduleOk = Object.keys(scheduleErrors).length === 0;
   const remind = !!manual.remind && !!dueTime;
-  const canAdd = p.title.trim().length > 0;
+  const canAdd = p.title.trim().length > 0 && scheduleOk;
 
   const submit = () => {
     if (!canAdd) return;
-    addTask({ title: p.title, priority, dueDate, dueTime, goalId, projectId, remind });
+    addTask({ title: p.title, priority, dueDate, dueTime, startDate, startTime, goalId, projectId, remind });
     if (remind && "Notification" in window && Notification.permission === "default") {
       void Notification.requestPermission();
     }
@@ -195,7 +219,7 @@ const ComposerForm: React.FC<{ defaults: Overrides & { title?: string }; onClose
           <button type="button" className="btn btn--ghost" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" form="composer-form" className="btn btn--primary" disabled={!canAdd}>
+          <button type="submit" form="composer-form" className="btn btn--primary" disabled={!canAdd} title={!scheduleOk ? "Fix the schedule to add this task" : undefined}>
             Add task
           </button>
         </>
@@ -257,31 +281,19 @@ const ComposerForm: React.FC<{ defaults: Overrides & { title?: string }; onClose
             </div>
           </div>
 
-          <div className="field">
-            <label className="label" htmlFor="composer-date">
-              Due date
-            </label>
-            <input
-              id="composer-date"
-              type="date"
-              className="input"
-              value={dueDate ?? ""}
-              onChange={e => setManual(o => ({ ...o, dueDate: e.target.value || null }))}
-            />
-          </div>
-          <div className="field">
-            <label className="label" htmlFor="composer-time">
-              Time
-            </label>
-            <input
-              id="composer-time"
-              type="time"
-              className="input"
-              value={dueTime ?? ""}
-              disabled={!dueDate}
-              onChange={e => setManual(o => ({ ...o, dueTime: e.target.value || null }))}
-            />
-          </div>
+          <ScheduleFields
+            idPrefix="composer"
+            value={schedule}
+            errors={scheduleErrors}
+            onChange={next =>
+              // Only fields the user actually changed override what was typed in the title.
+              setManual(o => {
+                const d: Overrides = { ...o };
+                for (const k of Object.keys(next) as (keyof ScheduleValue)[]) if (next[k] !== schedule[k]) d[k] = next[k];
+                return d;
+              })
+            }
+          />
           <div className="field">
             <label className="label" htmlFor="composer-goal">
               Goal

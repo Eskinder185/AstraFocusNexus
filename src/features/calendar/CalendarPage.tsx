@@ -2,7 +2,8 @@ import React, { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useUIActions } from "../../app/ui";
 import { PageHeader } from "../../components/PageHeader";
-import { addDays, formatClock, toDateKey } from "../../lib/dates";
+import { addDays, formatClock, formatTime, toDateKey } from "../../lib/dates";
+import { formatSchedule, scheduleSpan, spanCoversDay, type ScheduleSpan } from "../workspace/schedule";
 import { useFocusOnTask } from "../focus/useFocusOnTask";
 import type { Task } from "../workspace/schema";
 import { useWorkspace, useWorkspaceActions } from "../workspace/WorkspaceProvider";
@@ -23,6 +24,20 @@ export const CalendarPage: React.FC = () => {
   const [pickedTask, setPickedTask] = useState("");
   const scheduled = useMemo(() => tasks.filter(t => t.scheduledAt != null).sort((a, b) => (a.scheduledAt ?? 0) - (b.scheduledAt ?? 0)), [tasks]);
   const unscheduled = tasks.filter(t => t.status === "todo" && t.scheduledAt == null);
+  // Start→due schedules. Only tasks with BOTH a start and a due date have a span; a single
+  // date never gets an invented duration. Kept separate from work blocks and estimates.
+  const spans = useMemo(
+    () => tasks.flatMap(t => {
+      const span = scheduleSpan(t);
+      return span ? [{ task: t, span }] : [];
+    }).sort((a, b) => a.span.start - b.span.start),
+    [tasks]
+  );
+  const firstHour = HOURS[0];
+  const lastHour = HOURS[HOURS.length - 1];
+  /** Timed, single-day spans go in their start-hour slot; everything else in the all-day row. */
+  const inHourGrid = (span: ScheduleSpan) => span.timed && !span.multiDay && new Date(span.start).getHours() >= firstHour && new Date(span.start).getHours() <= lastHour;
+  const spansOn = (day: Date) => spans.filter(s => spanCoversDay(s.span, toDateKey(day)));
   const selected = unscheduled.find(t => t.id === pickedTask);
   const start = view === "month" ? new Date(cursor.getFullYear(), cursor.getMonth(), 1) : view === "day" ? cursor : startWeek(cursor);
   const days = view === "month"
@@ -50,8 +65,29 @@ export const CalendarPage: React.FC = () => {
     </div>
   );
 
+  const spanLabel = (task: Task, span: ScheduleSpan, day: Date) => {
+    const key = toDateKey(day);
+    if (!span.multiDay) {
+      if (span.timed) return `${formatTime(task.startTime!)} – ${formatTime(task.dueTime!)}`;
+      if (task.startTime) return `From ${formatTime(task.startTime)}`;
+      if (task.dueTime) return `Due ${formatTime(task.dueTime)}`;
+      return "All day";
+    }
+    if (key === span.startKey) return task.startTime ? `Starts ${formatTime(task.startTime)}` : "Starts";
+    if (key === span.endKey) return task.dueTime ? `Due ${formatTime(task.dueTime)}` : "Due";
+    return "Continues";
+  };
+  const spanItem = ({ task, span }: { task: Task; span: ScheduleSpan }, day: Date) => (
+    <button key={`span-${task.id}`} type="button" className={"calendar-span" + (task.status === "done" ? " is-done" : "")}
+      onClick={() => openTask(task.id)} title={formatSchedule(task, new Date())?.full}
+      aria-label={`${task.title}. ${formatSchedule(task, new Date())?.full ?? ""}`}>
+      <strong>{task.title}</strong>
+      <span>{spanLabel(task, span, day)}</span>
+    </button>
+  );
+
   return <div className="calendar-page">
-    <PageHeader title="Calendar" description="Plan work blocks separately from deadlines." actions={
+    <PageHeader title="Calendar" description="Plan work blocks separately from deadlines. Tasks with a start and a due date appear as dashed schedule items." actions={
       <button type="button" className="btn btn--primary" onClick={() => openComposer()}><Plus size={16} aria-hidden /> New task</button>
     } />
     <div className="calendar-toolbar card">
@@ -86,21 +122,30 @@ export const CalendarPage: React.FC = () => {
         {view === "agenda" ? <div className="calendar-agenda">
           {days.map(day => <section key={toDateKey(day)}>
             <h2>{day.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</h2>
+            {spansOn(day).map(s => spanItem(s, day))}
             {scheduled.filter(t => sameDay(t.scheduledAt!, day)).map(block)}
-            {!scheduled.some(t => sameDay(t.scheduledAt!, day)) && <p className="subtle">No work blocks</p>}
+            {!scheduled.some(t => sameDay(t.scheduledAt!, day)) && !spansOn(day).length && <p className="subtle">Nothing scheduled</p>}
           </section>)}
         </div> : view === "month" ? <div className="calendar-month">
           {days.map(day => <div key={toDateKey(day)} className="calendar-month__day" onDragOver={e => e.preventDefault()} onDrop={e => drop(e, dateAt(day, 9))}>
             <button type="button" className="calendar-day-label" onClick={() => { setCursor(day); setView("day"); }}>{day.getDate()}</button>
+            {spansOn(day).map(s => spanItem(s, day))}
             {scheduled.filter(t => sameDay(t.scheduledAt!, day)).map(block)}
             {pickedTask && dateAt(day, 9) >= Date.now() && <button type="button" className="calendar-place" onClick={() => place(pickedTask, dateAt(day, 9))}>Schedule at 9 AM</button>}
           </div>)}
         </div> : <div className="calendar-grid" style={{ gridTemplateColumns: `4rem repeat(${days.length}, minmax(9rem, 1fr))` }}>
           <span className="calendar-grid__corner" />
           {days.map(day => <strong key={toDateKey(day)} className="calendar-grid__heading">{day.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</strong>)}
+          {days.some(day => spansOn(day).some(s => !inHourGrid(s.span))) && <>
+            <span className="calendar-grid__hour calendar-grid__allday-label">All day</span>
+            {days.map(day => <div key={`allday-${toDateKey(day)}`} className="calendar-grid__slot calendar-grid__allday">
+              {spansOn(day).filter(s => !inHourGrid(s.span)).map(s => spanItem(s, day))}
+            </div>)}
+          </>}
           {HOURS.map(hour => <React.Fragment key={hour}>
             <span className="calendar-grid__hour">{formatClock(dateAt(cursor, hour))}</span>
             {days.map(day => <div key={toDateKey(day)} className="calendar-grid__slot" onDragOver={e => e.preventDefault()} onDrop={e => drop(e, dateAt(day, hour))}>
+              {spansOn(day).filter(s => inHourGrid(s.span) && new Date(s.span.start).getHours() === hour).map(s => spanItem(s, day))}
               {scheduled.filter(t => sameDay(t.scheduledAt!, day) && new Date(t.scheduledAt!).getHours() === hour).map(block)}
               {pickedTask && dateAt(day, hour) >= Date.now() && <button type="button" className="calendar-place" onClick={() => place(pickedTask, dateAt(day, hour))}>Place here</button>}
             </div>)}

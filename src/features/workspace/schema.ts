@@ -23,6 +23,14 @@ export interface Task {
   dueDate: string | null;
   /** Local time, "HH:mm". Only meaningful when dueDate is set. */
   dueTime: string | null;
+  /**
+   * When the task starts (optional, added in 0.4). Local "YYYY-MM-DD", like dueDate;
+   * stored as a date key so date-only starts never shift with time zones. Older tasks
+   * simply have no start; one is never invented for them.
+   */
+  startDate?: string | null;
+  /** Local start time, "HH:mm". Only meaningful when startDate is set. */
+  startTime?: string | null;
   /** Planned work block start (epoch milliseconds), distinct from the deadline. */
   scheduledAt?: number | null;
   /** Planned work duration in minutes. */
@@ -130,6 +138,8 @@ export function normalizeTask(raw: unknown, now: number): Task | null {
   if (!id || !title) return null;
   const dueDate = isDateKey(raw.dueDate) ? raw.dueDate : null;
   const dueTime = dueDate && isTimeString(raw.dueTime) ? raw.dueTime : null;
+  const startDate = isDateKey(raw.startDate) ? raw.startDate : null;
+  const startTime = startDate && isTimeString(raw.startTime) ? raw.startTime : null;
   const status: TaskStatus = raw.status === "done" ? "done" : "todo";
   const createdAt = num(raw.createdAt, now);
   return {
@@ -140,6 +150,8 @@ export function normalizeTask(raw: unknown, now: number): Task | null {
     priority: isPriority(raw.priority) ? raw.priority : "NN",
     dueDate,
     dueTime,
+    startDate,
+    startTime,
     scheduledAt: numOrNull(raw.scheduledAt),
     estimateMin: typeof raw.estimateMin === "number" && Number.isInteger(raw.estimateMin) && raw.estimateMin >= 5 && raw.estimateMin <= 720 ? raw.estimateMin : null,
     remind: raw.remind === true && !!dueTime,

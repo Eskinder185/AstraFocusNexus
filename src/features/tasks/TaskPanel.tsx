@@ -9,6 +9,8 @@ import { PRIORITY_META, PRIORITY_ORDER } from "../workspace/priority";
 import type { Task } from "../workspace/schema";
 import { useWorkspace, useWorkspaceActions } from "../workspace/WorkspaceProvider";
 import { DueChip } from "./TaskRow";
+import { ScheduleFields } from "./ScheduleFields";
+import { scheduleOf, validateSchedule, type ScheduleValue } from "../workspace/schedule";
 import { useNow } from "../../hooks/useNow";
 
 export const TaskPanel: React.FC = () => {
@@ -37,6 +39,20 @@ const TaskPanelContent: React.FC<{ task: Task; onClose: () => void }> = ({ task,
   // Keep local drafts in sync with changes made elsewhere (e.g. another tab).
   useEffect(() => setTitle(task.title), [task.title]);
   useEffect(() => setNotes(task.notes), [task.notes]);
+
+  // Schedule edits save immediately when valid. An invalid combination stays on screen
+  // (with an explanation) but isn't saved, so nothing the user typed is lost.
+  const saved = scheduleOf(task);
+  const savedKey = `${saved.startDate}|${saved.startTime}|${saved.dueDate}|${saved.dueTime}`;
+  const [schedule, setSchedule] = useState<ScheduleValue>(saved);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => setSchedule(scheduleOf(task)), [savedKey]);
+  const scheduleErrors = validateSchedule(schedule);
+  const scheduleUnsaved = Object.keys(scheduleErrors).length > 0;
+  const changeSchedule = (next: ScheduleValue) => {
+    setSchedule(next);
+    if (Object.keys(validateSchedule(next)).length === 0) updateTask(task.id, next);
+  };
 
   const commitTitle = () => {
     const t = title.trim();
@@ -150,29 +166,13 @@ const TaskPanelContent: React.FC<{ task: Task; onClose: () => void }> = ({ task,
         </div>
 
         <div className="task-panel__grid">
-          <div className="field">
-            <label className="label" htmlFor="tp-date">
-              Due date
-            </label>
-            <input
-              id="tp-date"
-              type="date"
-              className="input"
-              value={task.dueDate ?? ""}
-              onChange={e => updateTask(task.id, { dueDate: e.target.value || null })}
-            />
-          </div>
-          <div className="field">
-            <label className="label" htmlFor="tp-time">
-              Time
-            </label>
-            <input
-              id="tp-time"
-              type="time"
-              className="input"
-              value={task.dueTime ?? ""}
-              disabled={!task.dueDate}
-              onChange={e => updateTask(task.id, { dueTime: e.target.value || null })}
+          <div className="task-panel__span">
+            <ScheduleFields
+              idPrefix="tp"
+              value={schedule}
+              errors={scheduleErrors}
+              onChange={changeSchedule}
+              dueExtra={scheduleUnsaved ? <p className="hint schedule-fields__unsaved">Not saved yet: fix the schedule above to save it.</p> : null}
             />
           </div>
           <div className="field task-panel__span">
@@ -194,10 +194,11 @@ const TaskPanelContent: React.FC<{ task: Task; onClose: () => void }> = ({ task,
             </select>
           </div>
           <div className="field task-panel__span">
-            <label className="label" htmlFor="tp-scheduled">Planned work start</label>
+            <label className="label" htmlFor="tp-scheduled">Planned work block</label>
             <input id="tp-scheduled" type="datetime-local" className="input"
               value={task.scheduledAt ? new Date(task.scheduledAt - new Date(task.scheduledAt).getTimezoneOffset() * 60_000).toISOString().slice(0, 16) : ""}
               onChange={e => updateTask(task.id, { scheduledAt: e.target.value ? new Date(e.target.value).getTime() : null })} />
+            <p className="hint">Time you plan to work on it (shown on the Calendar). Separate from when the task starts and is due.</p>
           </div>
           <div className="field">
             <label className="label" htmlFor="tp-estimate">Estimated minutes</label>

@@ -6,6 +6,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { useNow } from "../../hooks/useNow";
 import { toDateKey } from "../../lib/dates";
 import type { Task } from "../workspace/schema";
+import { listDayKey } from "../workspace/schedule";
 import { compareByDue, compareByPriority, groupOpenTasks, isOpen, isOverdue } from "../workspace/selectors";
 import { useWorkspace, useWorkspaceActions } from "../workspace/WorkspaceProvider";
 import { InlineQuickAdd } from "./TaskComposer";
@@ -47,8 +48,8 @@ export const TasksPage: React.FC = () => {
   const counts = useMemo(
     () => ({
       open: tasks.filter(isOpen).length,
-      today: tasks.filter(t => isOpen(t) && (t.dueDate === todayKey || isOverdue(t, now))).length,
-      upcoming: tasks.filter(t => isOpen(t) && !!t.dueDate && t.dueDate > todayKey).length,
+      today: tasks.filter(t => isOpen(t) && (listDayKey(t, now) === todayKey || isOverdue(t, now))).length,
+      upcoming: tasks.filter(t => isOpen(t) && !isOverdue(t, now) && (listDayKey(t, now) ?? "") > todayKey).length,
       done: tasks.filter(t => t.status === "done").length,
       all: tasks.length,
     }),
@@ -59,8 +60,8 @@ export const TasksPage: React.FC = () => {
     const q = query.trim().toLowerCase();
     return tasks.filter(t => {
       if (view === "open" && !isOpen(t)) return false;
-      if (view === "today" && !(isOpen(t) && (t.dueDate === todayKey || isOverdue(t, now)))) return false;
-      if (view === "upcoming" && !(isOpen(t) && t.dueDate && t.dueDate > todayKey)) return false;
+      if (view === "today" && !(isOpen(t) && (listDayKey(t, now) === todayKey || isOverdue(t, now)))) return false;
+      if (view === "upcoming" && !(isOpen(t) && !isOverdue(t, now) && (listDayKey(t, now) ?? "") > todayKey)) return false;
       if (view === "done" && t.status !== "done") return false;
       if (goalFilter === "none" && t.goalId) return false;
       if (goalFilter !== "any" && goalFilter !== "none" && t.goalId !== goalFilter) return false;

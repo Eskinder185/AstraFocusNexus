@@ -149,6 +149,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           priority: prefs.defaultPriority,
           dueDate: null,
           dueTime: null,
+          startDate: null,
+          startTime: null,
           scheduledAt: null,
           estimateMin: null,
           remind: false,
