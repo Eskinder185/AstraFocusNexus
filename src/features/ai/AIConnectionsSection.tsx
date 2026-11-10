@@ -1,6 +1,5 @@
-import React, { useEffect, useId, useRef, useState } from "react";
+import React, { useEffect, useId, useState } from "react";
 import { AlertTriangle, CheckCircle2, Eye, EyeOff, Info, Loader2, Plug, RefreshCw, X } from "lucide-react";
-import { useLocation } from "react-router-dom";
 import { cx } from "../../lib/cx";
 import { useAIConnection } from "./AIConnectionProvider";
 import { validateEndpoint } from "./endpoint";
@@ -11,9 +10,6 @@ export const AIConnectionsSection: React.FC = () => {
   const { state, dispatch, testConnection, loadModels, cancel, connected } = useAIConnection();
   const [showKey, setShowKey] = useState(false);
   const [urlDraft, setUrlDraft] = useState(state.baseUrl);
-  const location = useLocation();
-  const sectionRef = useRef<HTMLElement>(null);
-  const providerRef = useRef<HTMLSelectElement>(null);
   const ids = { provider: useId(), url: useId(), model: useId(), key: useId(), models: useId(), consent: useId(), urlHint: useId(), keyHint: useId() };
 
   const preset = PROVIDERS[state.provider];
@@ -25,37 +21,30 @@ export const AIConnectionsSection: React.FC = () => {
   // Keep the draft in sync when the provider preset replaces the URL.
   useEffect(() => setUrlDraft(state.baseUrl), [state.baseUrl]);
 
-  // /settings?section=ai (linked from the goal planner) scrolls here.
-  useEffect(() => {
-    if (new URLSearchParams(location.search).get("section") === "ai") {
-      sectionRef.current?.scrollIntoView({ block: "start" });
-      providerRef.current?.focus({ preventScroll: true });
-    }
-  }, [location.search]);
-
   /** Commit the URL on blur/Enter so typing doesn't wipe the key on every keystroke. */
   const commitUrl = () => {
     if (urlDraft !== state.baseUrl) dispatch({ type: "baseUrl", baseUrl: urlDraft.trim() });
   };
 
   return (
-    <section ref={sectionRef} id="ai-connections" className="card settings-section ai-section" aria-labelledby="ai-connections-title">
+    <section id="ai-connections" className="ai-section" aria-labelledby="ai-connections-title">
       <div className="ai-section__head">
         <h2 id="ai-connections-title" className="settings-section__title">
-          AI connections <span className="chip chip--outline">Optional</span>
+          Connection details
         </h2>
         <ConnectionBadge />
       </div>
       <p className="setting-row__desc ai-section__intro">
-        Connect a model you run yourself, or your own provider account, to get help breaking goals into tasks. AstraFocus works fully without
-        it, and never sends anything in the background.
+        For cloud providers (your own API key), custom OpenAI-compatible servers, or when you’d rather type the details yourself. The guided setup
+        above is easier for local apps.
       </p>
 
       <div className="ai-note ai-note--info" role="note">
         <Info size={16} aria-hidden />
         <p>
-          <strong>Kept in memory only.</strong> Your connection and key stay in this tab while you move around the app. Reloading or closing
-          AstraFocus forgets them. They’re never saved to this device, included in exports, or sent anywhere except the server you approve below.
+          <strong>API keys stay in memory only.</strong> A key lasts while you move around the app and is forgotten when you reload or close
+          AstraFocus. It’s never saved, exported, or sent anywhere except the server you approve below. For servers on this computer, the
+          address, model and permission (never a key) are remembered on this device; cloud and remote settings are not.
         </p>
       </div>
 
@@ -63,7 +52,6 @@ export const AIConnectionsSection: React.FC = () => {
         <div className="field">
           <label className="label" htmlFor={ids.provider}>Provider</label>
           <select
-            ref={providerRef}
             id={ids.provider}
             className="select"
             value={state.provider}
@@ -125,7 +113,7 @@ export const AIConnectionsSection: React.FC = () => {
           {state.models && state.models.length > 0 && (
             <>
               <datalist id={ids.models}>
-                {state.models.map(m => <option key={m} value={m} />)}
+                {state.models.map(m => <option key={m.id} value={m.id} />)}
               </datalist>
               <p className="hint">{state.models.length} {state.models.length === 1 ? "model" : "models"} found. Start typing to pick one, or enter a name manually.</p>
             </>

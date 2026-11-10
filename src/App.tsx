@@ -17,6 +17,7 @@ import { SettingsPage } from "./features/settings/SettingsPage";
 import { TasksPage } from "./features/tasks/TasksPage";
 import { WellnessPage } from "./features/wellness/WellnessPage";
 import { AIConnectionProvider } from "./features/ai/AIConnectionProvider";
+import { AIPage } from "./features/ai/AIPage";
 import { WorkspaceProvider, useWorkspace, useWorkspaceActions } from "./features/workspace/WorkspaceProvider";
 
 /** Sessions shorter than this (e.g. an accidental start then skip) aren't logged. */
@@ -64,6 +65,7 @@ const App: React.FC = () => (
                   <Route path="/wellness" element={<WellnessPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/help" element={<HelpPage />} />
+                  <Route path="/ai" element={<AIPage />} />
                   {/* v0.2 routes */}
                   <Route path="/about" element={<Navigate to="/help" replace />} />
                   <Route path="/faq" element={<Navigate to="/help" replace />} />

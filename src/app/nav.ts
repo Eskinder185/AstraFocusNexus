@@ -8,6 +8,7 @@ import {
   Leaf,
   ListChecks,
   Settings,
+  Sparkles,
   Target,
   Timer,
   type LucideIcon,
@@ -43,6 +44,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "goals", label: "Goals", path: "/goals", icon: Target, section: "growth", goKey: "g" },
   { id: "analytics", label: "Analytics", path: "/analytics", icon: ChartNoAxesCombined, section: "growth", goKey: "a" },
   { id: "wellness", label: "Wellness", path: "/wellness", icon: Leaf, section: "growth", goKey: "w" },
+  { id: "ai", label: "AI assistant", path: "/ai", icon: Sparkles, section: "system", goKey: "i" },
   { id: "settings", label: "Settings", path: "/settings", icon: Settings, section: "system", goKey: "s" },
   { id: "help", label: "Help & shortcuts", path: "/help", icon: CircleHelp, section: "system", goKey: "h" },
 ];

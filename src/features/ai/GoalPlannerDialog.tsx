@@ -68,7 +68,7 @@ export const GoalPlannerDialog: React.FC<{ open: boolean; onClose: () => void; i
     controllerRef.current = controller;
     setPhase({ kind: "loading" });
     try {
-      const reply = await chat(messages, { format: GOAL_TASKS_FORMAT, signal: controller.signal });
+      const { text: reply } = await chat(messages, { format: GOAL_TASKS_FORMAT, signal: controller.signal });
       const parsed = parseSuggestions(reply);
       if (!parsed.ok) {
         setPhase({ kind: "error", message: parsed.error });
@@ -135,7 +135,7 @@ export const GoalPlannerDialog: React.FC<{ open: boolean; onClose: () => void; i
           <div className="ai-note ai-note--warning" role="note">
             <AlertTriangle size={16} aria-hidden />
             <p>
-              No AI model is connected. <Link to="/settings?section=ai" onClick={close}>Set one up in Settings → AI connections</Link>, test it, then
+              No AI model is connected. <Link to="/ai" onClick={close}>Set one up on the AI assistant page</Link>, check it, then
               come back. Everything else in AstraFocus works without AI.
             </p>
           </div>

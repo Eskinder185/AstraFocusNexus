@@ -50,7 +50,7 @@ describe("connection state", () => {
   });
 
   it("changing the base URL clears key, status, models and consent", () => {
-    const s = connectionReducer({ ...connected(), models: ["m"] }, { type: "baseUrl", baseUrl: "https://other.example.com/v1" });
+    const s = connectionReducer({ ...connected(), models: [{ id: "m" }] }, { type: "baseUrl", baseUrl: "https://other.example.com/v1" });
     expect(s.apiKey).toBe("");
     expect(s.consentFor).toBeNull();
     expect(s.status.kind).toBe("idle");
@@ -60,7 +60,7 @@ describe("connection state", () => {
 
   it("changing the provider clears the destination and model", () => {
     const s = connectionReducer(connected(), { type: "provider", provider: "ollama" });
-    expect(s).toMatchObject({ apiKey: "", consentFor: null, model: "", baseUrl: "http://127.0.0.1:11434/v1" });
+    expect(s).toMatchObject({ apiKey: "", consentFor: null, model: "", baseUrl: "http://127.0.0.1:11434" });
   });
 
   it("changing the model keeps consent but drops verified status", () => {

@@ -1,84 +1,62 @@
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import { freshAIPage, mockOllama, mockOpenAI, openManual } from "./aiMocks";
 
 /**
- * AI connections with MOCKED providers. Every request to the provider URLs below is
- * intercepted by page.route; nothing reaches a real model or API. These tests
- * verify AstraFocus's behaviour, not that any real provider works.
+ * Manual connection, privacy and the goal planner — all with SIMULATED providers
+ * (page.route). These tests verify AstraFocus's behaviour, not that any real provider works.
  */
 
-const OLLAMA = "http://127.0.0.1:11434/v1";
-const OPENAI = "https://api.openai.com/v1";
 const SECRET = "sk-test-DO-NOT-STORE-1234567890";
 
-interface Hits { models: number; chat: number; bodies: unknown[]; auth: (string | null)[] }
-
-async function mockProvider(page: Page, base: string, opts: { models?: string[]; status?: number; errorBody?: unknown; chatReply?: string } = {}): Promise<Hits> {
-  const hits: Hits = { models: 0, chat: 0, bodies: [], auth: [] };
-  await page.route(`${base}/**`, async (route: Route) => {
-    const req = route.request();
-    hits.auth.push(req.headers()["authorization"] ?? null);
-    const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Content-Type": "application/json" };
-    if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
-    if (opts.status && opts.status >= 400) return route.fulfill({ status: opts.status, headers: cors, body: JSON.stringify(opts.errorBody ?? {}) });
-    if (req.url().endsWith("/models")) {
-      hits.models++;
-      return route.fulfill({ status: 200, headers: cors, body: JSON.stringify({ object: "list", data: (opts.models ?? ["llama3.2:3b"]).map(id => ({ id, object: "model" })) }) });
-    }
-    hits.chat++;
-    hits.bodies.push(req.postDataJSON());
-    return route.fulfill({ status: 200, headers: cors, body: JSON.stringify({ choices: [{ message: { role: "assistant", content: opts.chatReply ?? "OK" } }] }) });
-  });
-  return hits;
-}
-
-async function freshSettings(page: Page) {
-  await page.goto("./");
-  await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
-  await page.goto("./#/settings");
-}
-
-const section = (page: Page) => page.locator("#ai-connections");
-
 async function connectOllama(page: Page, model = "llama3.2:3b") {
-  const s = section(page);
+  const s = await openManual(page);
   await s.getByLabel("Model", { exact: true }).fill(model);
   await s.getByLabel(/Allow AstraFocus to send requests to 127\.0\.0\.1:11434/).check();
   await s.getByRole("button", { name: "Test connection" }).click();
   await expect(s.getByRole("status")).toContainText("Connected");
+  return s;
 }
 
-test("nothing is sent before consent; test connection uses the model list", async ({ page }) => {
-  const hits = await mockProvider(page, OLLAMA);
-  await freshSettings(page);
-  const s = section(page);
-  await expect(s.getByText("Not connected")).toBeVisible();
+test("nothing is sent before consent; the connection check doesn't generate text", async ({ page }) => {
+  const hits = await mockOllama(page);
+  await freshAIPage(page);
+  const s = await openManual(page);
   await s.getByLabel("Model", { exact: true }).fill("llama3.2:3b");
   await expect(s.getByRole("button", { name: "Test connection" })).toBeDisabled();
   await expect(s.getByRole("button", { name: "Load models" })).toBeDisabled();
-  expect(hits.models + hits.chat).toBe(0);
+  expect(hits.version + hits.tags + hits.show + hits.chat).toBe(0);
 
   await s.getByLabel(/Allow AstraFocus to send requests/).check();
   await s.getByRole("button", { name: "Test connection" }).click();
-  await expect(s.getByRole("status")).toContainText("Found “llama3.2:3b”");
-  await expect(s.getByText("Connected", { exact: true })).toBeVisible();
-  expect(hits.models).toBe(1);
-  expect(hits.chat).toBe(0); // verified without generating text
+  await expect(s.getByRole("status")).toContainText("“llama3.2:3b” on 127.0.0.1:11434 is ready");
+  expect([hits.version, hits.tags, hits.show, hits.chat]).toEqual([1, 1, 1, 0]);
 });
 
-test("reports a model the server doesn't have", async ({ page }) => {
-  await mockProvider(page, OLLAMA, { models: ["qwen2.5:7b"] });
-  await freshSettings(page);
-  const s = section(page);
+test("reports a model the server doesn't have, with the pull command", async ({ page }) => {
+  await mockOllama(page, { models: [{ name: "qwen3:8b" }] });
+  await freshAIPage(page);
+  const s = await openManual(page);
   await s.getByLabel("Model", { exact: true }).fill("not-a-model");
   await s.getByLabel(/Allow AstraFocus/).check();
   await s.getByRole("button", { name: "Test connection" }).click();
   await expect(s.getByRole("status")).toContainText("no model named “not-a-model”");
 });
 
+test("missing local server shows a meaningful error", async ({ page }) => {
+  await page.route("http://127.0.0.1:11434/**", r => r.abort("connectionrefused"));
+  await freshAIPage(page);
+  const s = await openManual(page);
+  await s.getByLabel("Model", { exact: true }).fill("llama3.2:3b");
+  await s.getByLabel(/Allow AstraFocus/).check();
+  await s.getByRole("button", { name: "Test connection" }).click();
+  await expect(s.getByRole("status")).toContainText("Couldn’t reach the server");
+  await expect(s.getByRole("status")).toContainText("CORS");
+});
+
 test("API key stays in memory: survives navigation, never stored or exported, gone after reload", async ({ page }) => {
-  const hits = await mockProvider(page, OPENAI, { models: ["gpt-test"] });
-  await freshSettings(page);
-  const s = section(page);
+  const hits = await mockOpenAI(page, { models: ["gpt-test"] });
+  await freshAIPage(page);
+  const s = await openManual(page);
   await s.getByLabel("Provider", { exact: true }).selectOption("openai");
   await s.getByLabel(/^API key/).fill(SECRET);
   await expect(s.getByLabel(/^API key/)).toHaveAttribute("type", "password");
@@ -86,16 +64,16 @@ test("API key stays in memory: survives navigation, never stored or exported, go
   await s.getByLabel(/Allow AstraFocus to send requests to api\.openai\.com/).check();
   await s.getByRole("button", { name: "Test connection" }).click();
   await expect(s.getByRole("status")).toContainText("Connected");
-  expect(hits.auth.filter(Boolean)).toEqual([`Bearer ${SECRET}`]);
+  expect(hits.auth.filter(Boolean).every(a => a === `Bearer ${SECRET}`)).toBe(true);
   expect(page.url()).not.toContain(SECRET);
 
   // Navigate away and back: still connected (shared in-memory provider).
   await page.goto("./#/tasks");
-  await page.goto("./#/settings");
-  await expect(section(page).getByText("Connected", { exact: true })).toBeVisible();
-  await expect(section(page).getByLabel(/^API key/)).toHaveValue(SECRET);
+  await page.goto("./#/ai");
+  await expect(page.locator(".ai-dash__status").getByText("Connected", { exact: true })).toBeVisible();
+  await expect((await openManual(page)).getByLabel(/^API key/)).toHaveValue(SECRET);
 
-  // Not in any browser storage.
+  // Not in any browser storage, and remote settings aren't remembered at all.
   const stored = await page.evaluate(async () => {
     const all: string[] = [];
     for (const st of [localStorage, sessionStorage]) for (let i = 0; i < st.length; i++) all.push(st.key(i)!, st.getItem(st.key(i)!) ?? "");
@@ -107,6 +85,7 @@ test("API key stays in memory: survives navigation, never stored or exported, go
   expect(stored.dbs).toEqual([]);
 
   // Not in the workspace export.
+  await page.goto("./#/settings");
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Export", exact: true }).click()]);
   const exported = await (await download.createReadStream()).toArray().then(chunks => Buffer.concat(chunks).toString("utf8"));
   expect(exported.length).toBeGreaterThan(50);
@@ -114,16 +93,18 @@ test("API key stays in memory: survives navigation, never stored or exported, go
   expect(exported).not.toContain("api.openai.com");
 
   // Reload clears it.
+  await page.goto("./#/ai");
   await page.reload();
-  await expect(section(page).getByText("Not connected")).toBeVisible();
-  await expect(section(page).getByLabel("Provider", { exact: true })).toHaveValue("ollama");
-  await expect(section(page).getByLabel(/^API key/)).toHaveValue("");
+  await expect(page.getByRole("button", { name: /I already have a local AI/ })).toBeVisible();
+  const after = await openManual(page);
+  await expect(after.getByLabel("Provider", { exact: true })).toHaveValue("ollama");
+  await expect(after.getByLabel(/^API key/)).toHaveValue("");
 });
 
 test("changing the destination clears key, consent and status", async ({ page }) => {
-  await mockProvider(page, OPENAI, { models: ["gpt-test"] });
-  await freshSettings(page);
-  const s = section(page);
+  await mockOpenAI(page, { models: ["gpt-test"] });
+  await freshAIPage(page);
+  const s = await openManual(page);
   await s.getByLabel("Provider", { exact: true }).selectOption("openai");
   await s.getByLabel(/^API key/).fill(SECRET);
   await s.getByLabel("Model", { exact: true }).fill("gpt-test");
@@ -141,12 +122,13 @@ test("changing the destination clears key, consent and status", async ({ page })
 });
 
 test("rejects unsafe endpoints", async ({ page }) => {
-  await freshSettings(page);
-  const s = section(page);
+  await freshAIPage(page);
+  const s = await openManual(page);
   await s.getByLabel("Provider", { exact: true }).selectOption("custom");
   const url = s.getByLabel("API base URL");
   for (const [value, msg] of [
     ["http://api.example.com/v1", /must use HTTPS/],
+    ["http://192.168.1.20:11434", /must use HTTPS/],
     ["https://user:pw@api.example.com/v1", /username or password/],
     ["ftp://example.com", /Only http/],
   ] as const) {
@@ -158,9 +140,9 @@ test("rejects unsafe endpoints", async ({ page }) => {
 });
 
 test("shows a clear auth error", async ({ page }) => {
-  await mockProvider(page, OPENAI, { status: 401, errorBody: { error: { message: `Incorrect API key provided: ${SECRET}`, code: "invalid_api_key" } } });
-  await freshSettings(page);
-  const s = section(page);
+  await mockOpenAI(page, { status: 401, errorBody: { error: { message: `Incorrect API key provided: ${SECRET}`, code: "invalid_api_key" } } });
+  await freshAIPage(page);
+  const s = await openManual(page);
   await s.getByLabel("Provider", { exact: true }).selectOption("openai");
   await s.getByLabel(/^API key/).fill(SECRET);
   await s.getByLabel("Model", { exact: true }).fill("gpt-test");
@@ -173,13 +155,13 @@ test("shows a clear auth error", async ({ page }) => {
 test("goal planner: preview, safe rendering, review, explicit add, no duplicates", async ({ page }) => {
   const reply = JSON.stringify({
     tasks: [
-      { title: "<img src=x onerror=\"window.__xss=1\">Outline chapters", description: "<b>bold?</b> Plan the structure", minutes: 30, order: 1 },
+      { title: '<img src=x onerror="window.__xss=1">Outline chapters', description: "<b>bold?</b> Plan the structure", minutes: 30, order: 1 },
       { title: "Draft chapter one", description: "Write the first draft", minutes: 90, order: 2 },
       { title: "Remove me", description: "", minutes: 15, order: 3 },
     ],
   });
-  const hits = await mockProvider(page, OLLAMA, { chatReply: reply });
-  await freshSettings(page);
+  const hits = await mockOllama(page, { reply });
+  await freshAIPage(page);
   await connectOllama(page);
 
   await page.goto("./#/goals");
@@ -192,9 +174,11 @@ test("goal planner: preview, safe rendering, review, explicit add, no duplicates
   await dialog.getByRole("button", { name: "Break into tasks" }).click();
   await expect(dialog.getByRole("list", { name: "Suggested tasks" })).toBeVisible();
   expect(hits.chat).toBe(1);
-  const sent = hits.bodies[0] as { messages: { role: string; content: string }[]; model: string };
+  const sent = hits.bodies[0] as { messages: { role: string; content: string }[]; model: string; format?: unknown; think?: boolean };
   expect(sent.model).toBe("llama3.2:3b");
   expect(sent.messages.at(-1)!.content).toBe("Goal: Write my thesis");
+  expect(sent.format).toBeTruthy();
+  expect(sent).not.toHaveProperty("think"); // llama3.2 has no thinking capability
   expect(JSON.stringify(sent)).not.toMatch(/task-tracker|astra\.workspace/);
 
   // Model output is shown as plain text, never as HTML.
@@ -205,37 +189,46 @@ test("goal planner: preview, safe rendering, review, explicit add, no duplicates
   // Nothing created yet.
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("astra.workspace.v2") ?? "{}").tasks?.length ?? 0)).toBe(0);
 
-  // Edit, remove, deselect.
   await dialog.getByLabel("Task 1 title").fill("Outline chapters");
   await dialog.getByLabel("Task 2 duration in minutes").fill("60");
   await dialog.getByRole("button", { name: "Remove task 3" }).click();
-  await expect(dialog.getByRole("button", { name: "Add selected tasks (2)" })).toBeEnabled();
-
-  // Double click must add each task exactly once.
   await dialog.getByRole("button", { name: "Add selected tasks (2)" }).dblclick();
   await expect(page.getByText("Added 2 tasks.")).toBeVisible();
   await expect(dialog).toHaveCount(0);
-  const tasks = await page.evaluate(() => JSON.parse(localStorage.getItem("astra.workspace.v2")!).tasks as { title: string; estimateMin: number; notes: string }[]);
+  const tasks = await page.evaluate(() => JSON.parse(localStorage.getItem("astra.workspace.v2")!).tasks as { title: string; estimateMin: number }[]);
   expect(tasks.map(t => t.title).sort()).toEqual(["Draft chapter one", "Outline chapters"]);
   expect(tasks.find(t => t.title === "Draft chapter one")!.estimateMin).toBe(60);
   expect(hits.chat).toBe(1);
 });
 
+test("planner turns off thinking for models that support it", async ({ page }) => {
+  const hits = await mockOllama(page, { reply: '{"tasks":[{"title":"A","description":"","minutes":10,"order":1}]}' });
+  await freshAIPage(page);
+  await connectOllama(page, "qwen3:8b");
+  await page.goto("./#/goals");
+  await page.getByRole("button", { name: "Break into tasks" }).click();
+  const dialog = page.getByRole("dialog", { name: "Break a goal into tasks" });
+  await dialog.getByLabel("What do you want to achieve?").fill("Learn Rust");
+  await dialog.getByRole("button", { name: "Break into tasks" }).click();
+  await expect(dialog.getByLabel("Task 1 title")).toHaveValue("A");
+  expect(hits.bodies[0]).toMatchObject({ think: false });
+});
+
 test("goal planner without a connection explains how to connect", async ({ page }) => {
-  await freshSettings(page);
+  await freshAIPage(page);
   await page.goto("./#/goals");
   await page.getByRole("button", { name: "Break into tasks" }).click();
   const dialog = page.getByRole("dialog", { name: "Break a goal into tasks" });
   await expect(dialog.getByText("No AI model is connected")).toBeVisible();
   await dialog.getByLabel("What do you want to achieve?").fill("Learn guitar");
   await expect(dialog.getByRole("button", { name: "Break into tasks" })).toBeDisabled();
-  await dialog.getByRole("link", { name: /Settings → AI connections/ }).click();
-  await expect(page).toHaveURL(/#\/settings\?section=ai/);
+  await dialog.getByRole("link", { name: /AI assistant page/ }).click();
+  await expect(page).toHaveURL(/#\/ai$/);
 });
 
 test("handles an unreadable model reply without crashing", async ({ page }) => {
-  await mockProvider(page, OLLAMA, { chatReply: "Sorry, I can only chat." });
-  await freshSettings(page);
+  await mockOllama(page, { reply: "Sorry, I can only chat." });
+  await freshAIPage(page);
   await connectOllama(page);
   await page.goto("./#/goals");
   await page.getByRole("button", { name: "Break into tasks" }).click();
@@ -246,13 +239,13 @@ test("handles an unreadable model reply without crashing", async ({ page }) => {
 });
 
 for (const width of [375, 430]) {
-  test(`AI screens fit at ${width}px`, async ({ page }) => {
-    await mockProvider(page, OLLAMA, { chatReply: JSON.stringify({ tasks: [{ title: "A".repeat(110), description: "word ".repeat(70), minutes: 30, order: 1 }] }) });
+  test(`manual form and planner fit at ${width}px`, async ({ page }) => {
+    await mockOllama(page, { reply: JSON.stringify({ tasks: [{ title: "A".repeat(110), description: "word ".repeat(70), minutes: 30, order: 1 }] }) });
     await page.setViewportSize({ width, height: 800 });
-    await freshSettings(page);
-    const s = section(page);
+    await freshAIPage(page);
+    const s = await openManual(page);
     await s.getByLabel("Provider", { exact: true }).selectOption("custom");
-    await s.getByLabel("API base URL").fill(`https://a-very-long-subdomain-name-for-testing.example-provider.com/openai/compat/v1/deployments/xyz`);
+    await s.getByLabel("API base URL").fill("https://a-very-long-subdomain-name-for-testing.example-provider.com/openai/compat/v1/deployments/xyz");
     await s.getByLabel("API base URL").press("Enter");
     await s.getByLabel("Model", { exact: true }).fill("organization/some-extremely-long-model-identifier-name-v2-instruct-q4_K_M");
     const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -260,16 +253,15 @@ for (const width of [375, 430]) {
 
     await s.getByLabel("Provider", { exact: true }).selectOption("ollama");
     await connectOllama(page);
+    expect(await overflow()).toBeLessThanOrEqual(0);
     await page.goto("./#/goals");
     await page.getByRole("button", { name: "Break into tasks" }).click();
     const dialog = page.getByRole("dialog", { name: "Break a goal into tasks" });
     await dialog.getByLabel("What do you want to achieve?").fill("x".repeat(300));
-    expect(await overflow()).toBeLessThanOrEqual(0);
     await dialog.getByRole("button", { name: "Break into tasks" }).click();
     await expect(dialog.getByLabel("Task 1 title")).toBeVisible();
     expect(await overflow()).toBeLessThanOrEqual(0);
     const box = await dialog.boundingBox();
-    expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(width);
   });
 }

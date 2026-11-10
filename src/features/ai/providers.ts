@@ -1,6 +1,6 @@
 /**
- * Provider presets. All four speak the OpenAI-compatible Chat Completions API
- * (POST {base}/chat/completions, GET {base}/models), so they share one adapter.
+ * Provider presets. Ollama uses its native API (ollama.ts); the others speak the
+ * OpenAI-compatible Chat Completions API (client.ts).
  * Native Anthropic / Gemini APIs are intentionally not listed: they are not
  * OpenAI-compatible and no adapter for them exists here.
  *
@@ -14,14 +14,11 @@
  *   per the official openai-node types.
  */
 
-export type ProviderId = "ollama" | "lmstudio" | "openai" | "custom";
+import { createOpenAICompatibleAdapter, type AIAdapter, type StructuredMode } from "./client";
+import { createOllamaAdapter } from "./ollama";
 
-/**
- * How we ask for JSON. "json_schema" sends response_format (documented for OpenAI
- * and LM Studio). "prompt" relies on instructions + tolerant parsing, because the
- * server's support for response_format is unknown or undocumented.
- */
-export type StructuredMode = "json_schema" | "prompt";
+export type { StructuredMode };
+export type ProviderId = "ollama" | "lmstudio" | "openai" | "custom";
 
 export interface ProviderPreset {
   id: ProviderId;
@@ -33,7 +30,13 @@ export interface ProviderPreset {
   keyHint: string;
   /** Runs on this device by default. */
   local: boolean;
+  /**
+   * How we ask for JSON with the OpenAI-compatible adapter. "json_schema" sends
+   * response_format (documented for OpenAI and LM Studio); "prompt" relies on
+   * instructions + tolerant parsing. Ollama native always sends `format`.
+   */
   structured: StructuredMode;
+  api: "ollama" | "openai";
   setupHint: string;
 }
 
@@ -41,12 +44,13 @@ export const PROVIDERS: Record<ProviderId, ProviderPreset> = {
   ollama: {
     id: "ollama",
     label: "Ollama (local)",
-    defaultBaseUrl: "http://127.0.0.1:11434/v1",
+    defaultBaseUrl: "http://127.0.0.1:11434",
     modelPlaceholder: "Exact name from `ollama list`",
     keyRequired: false,
     keyHint: "Not needed for a local Ollama server.",
     local: true,
     structured: "prompt",
+    api: "ollama",
     setupHint: "Start Ollama, then use Load models or type a name from `ollama list`.",
   },
   lmstudio: {
@@ -58,6 +62,7 @@ export const PROVIDERS: Record<ProviderId, ProviderPreset> = {
     keyHint: "Only needed if you turned on “Require Authentication” in LM Studio.",
     local: true,
     structured: "json_schema",
+    api: "openai",
     setupHint: "In LM Studio’s Developer tab, start the server and turn on Enable CORS.",
   },
   openai: {
@@ -69,6 +74,7 @@ export const PROVIDERS: Record<ProviderId, ProviderPreset> = {
     keyHint: "Create a key at platform.openai.com. Usage is billed to your OpenAI account.",
     local: false,
     structured: "json_schema",
+    api: "openai",
     setupHint: "Use Load models to see the model IDs your key can access.",
   },
   custom: {
@@ -80,8 +86,12 @@ export const PROVIDERS: Record<ProviderId, ProviderPreset> = {
     keyHint: "Leave empty if your server doesn’t need a key.",
     local: false,
     structured: "prompt",
+    api: "openai",
     setupHint: "The server must implement /chat/completions and allow requests from this site (CORS).",
   },
 };
 
 export const PROVIDER_ORDER: ProviderId[] = ["ollama", "lmstudio", "openai", "custom"];
+
+const adapters = { ollama: createOllamaAdapter(), openai: createOpenAICompatibleAdapter() };
+export const adapterFor = (provider: ProviderId): AIAdapter => adapters[PROVIDERS[provider].api];
