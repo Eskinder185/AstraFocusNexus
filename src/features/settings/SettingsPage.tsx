@@ -16,6 +16,10 @@ import { useWorkspace, useWorkspaceActions } from "../workspace/WorkspaceProvide
 
 const APP_VERSION = "0.3.0";
 
+const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const recordCounts = (d: Pick<WorkspaceData, "tasks" | "goals" | "projects" | "focusSessions">) =>
+  `${count(d.tasks.length, "task")}, ${count(d.goals.length, "goal")}, ${count(d.projects.length, "project")}, ${count(d.focusSessions.length, "focus session")}`;
+
 function download(filename: string, content: string) {
   const blob = new Blob([content], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -94,7 +98,7 @@ export const SettingsPage: React.FC = () => {
 
   const confirmImport = () => {
     if (!pendingImport) return;
-    if (!window.confirm(`Replace your current workspace with ${pendingImport.tasks.length} tasks, ${pendingImport.goals.length} goals and ${pendingImport.projects.length} projects? A local backup will be saved first.`)) return;
+    if (!window.confirm(`Replace your current workspace with ${count(pendingImport.tasks.length, "task")}, ${count(pendingImport.goals.length, "goal")} and ${count(pendingImport.projects.length, "project")}? A local backup will be saved first.`)) return;
     try {
       localStorage.setItem(`astra.backup.before-import.${Date.now()}`, JSON.stringify(data));
     } catch {
@@ -215,7 +219,7 @@ export const SettingsPage: React.FC = () => {
             removes it. Export regularly if your work matters to you.
           </p>
         </div>
-        <SettingRow label="Export everything" description={`${data.tasks.length} tasks, ${data.goals.length} goals, ${data.projects.length} projects, ${data.focusSessions.length} focus sessions as JSON.`}>
+        <SettingRow label="Export everything" description={`${recordCounts(data)} as JSON.`}>
           <button type="button" className="btn btn--sm" onClick={exportAll}>
             <Download size={14} aria-hidden /> Export
           </button>
@@ -225,7 +229,7 @@ export const SettingsPage: React.FC = () => {
           <input id="workspace-import" className="visually-hidden" type="file" accept=".json,application/json" onChange={e => void readImport(e.target.files?.[0])} />
         </SettingRow>
         {pendingImport && <div className="data-note" role="status">
-          <span>Ready to restore: {pendingImport.tasks.length} tasks, {pendingImport.goals.length} goals, {pendingImport.projects.length} projects, {pendingImport.focusSessions.length} focus sessions.</span>
+          <span>Ready to restore: {recordCounts(pendingImport)}.</span>
           <button type="button" className="btn btn--primary btn--sm" onClick={confirmImport}>Restore workspace</button>
           <button type="button" className="btn btn--sm" onClick={() => setPendingImport(null)}>Cancel</button>
         </div>}

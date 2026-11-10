@@ -16,9 +16,10 @@ interface Props {
   long: boolean;
   onStartBreak: () => void;
   onSkipBreak: () => void;
+  onEndSession: () => void;
 }
 
-export const BreakDialog: React.FC<Props> = ({ minutes, long, onStartBreak, onSkipBreak }) => {
+export const BreakDialog: React.FC<Props> = ({ minutes, long, onStartBreak, onSkipBreak, onEndSession }) => {
   const [busy, setBusy] = useState(false);
   const picks = useMemo(() => [...SUGGESTIONS].sort(() => Math.random() - 0.5).slice(0, 3), []);
 
@@ -37,8 +38,11 @@ export const BreakDialog: React.FC<Props> = ({ minutes, long, onStartBreak, onSk
       className="break-dialog"
       footer={
         <>
-          <button type="button" className="btn btn--ghost" onClick={act(onSkipBreak)} disabled={busy}>
-            Skip break
+          <button type="button" className="btn btn--ghost" onClick={act(onEndSession)} disabled={busy}>
+            Done for now
+          </button>
+          <button type="button" className="btn" onClick={act(onSkipBreak)} disabled={busy} title="Skip the break and start the next focus session now">
+            Back to focus
           </button>
           <button type="button" className="btn btn--primary" data-autofocus onClick={act(onStartBreak)} disabled={busy}>
             Start {minutes}-minute {long ? "long " : ""}break

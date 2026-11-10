@@ -46,8 +46,8 @@ export const ProjectsPage: React.FC = () => {
             <div className="field"><label className="label" htmlFor="project-date">Target date</label><input id="project-date" type="date" className="input" value={selected.targetDate ?? ""} onChange={e => updateProject(selected.id, { targetDate: e.target.value || null })} /></div>
             <div className="field"><label className="label" htmlFor="project-goal">Related goal</label><select id="project-goal" className="select" value={selected.goalId ?? ""} onChange={e => updateProject(selected.id, { goalId: e.target.value || null })}><option value="">None</option>{goals.map(g => <option key={g.id} value={g.id}>{g.title}</option>)}</select></div>
             {selected.goalId && <Link to="/goals" className="btn btn--ghost btn--sm"><Target size={14} aria-hidden /> View goals</Link>}
-            <div className="row"><h3>Tasks</h3><button type="button" className="btn btn--sm" onClick={() => openComposer()}>New task</button></div>
-            {linked.length ? <ul role="list" className="task-list">{linked.map(t => <TaskRow key={t.id} task={t} now={now} />)}</ul> : <p className="subtle">No tasks yet. Add a task, then choose this project in task details.</p>}
+            <div className="row"><h3>Tasks</h3><button type="button" className="btn btn--sm" onClick={() => openComposer({ projectId: selected.id, ...(selected.goalId ? { goalId: selected.goalId } : {}) })}>New task</button></div>
+            {linked.length ? <ul role="list" className="task-list">{linked.map(t => <TaskRow key={t.id} task={t} now={now} />)}</ul> : <p className="subtle">No tasks yet. Use New task above, or choose this project in any task’s details.</p>}
           </div>
         </> : <div className="card__body"><p className="subtle">Create a project to organize related tasks.</p></div>}
       </section>

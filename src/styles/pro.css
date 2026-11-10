@@ -36,6 +36,7 @@
 .calendar-block span { color: var(--text-2); font-size: var(--text-xs); }
 .calendar-block__focus { font-size: var(--text-xs); color: var(--accent-text); }
 .calendar-place { width: 100%; padding: .4rem; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); color: var(--accent-text); font-size: var(--text-xs); }
+.calendar-place:hover, .calendar-place:focus-visible { background: var(--accent-soft); border-color: var(--accent); }
 .calendar-month { display: grid; grid-template-columns: repeat(7, minmax(7rem, 1fr)); min-width: 49rem; }
 .calendar-month__day { min-height: 7rem; padding: .5rem; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .calendar-day-label { margin-bottom: .5rem; font-weight: 600; color: var(--text); }

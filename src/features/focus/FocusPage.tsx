@@ -96,6 +96,7 @@ export const FocusPage: React.FC = () => {
 
   return (
     <div className="focus-page">
+      <h1 className="visually-hidden">Focus Studio</h1>
       <section
         ref={stageRef}
         className={cx("focus-stage", `atmo-${atmosphere}`, isBreak && "is-break", pomo.running && "is-running", immersive && "is-immersive")}

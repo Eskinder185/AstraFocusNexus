@@ -102,6 +102,8 @@ interface PomodoroContextValue {
   quickStartFocus: (minutes?: number) => void;
   confirmStartBreak: () => void;
   confirmSkipBreak: () => void;
+  /** Close the break prompt without starting anything; the timer waits, ready for the next focus. */
+  confirmEndSession: () => void;
   setBreakModalClosing: (v: boolean) => void;
   setShowBreakModal: (v: boolean) => void;
   showMiniTimer: boolean;
@@ -580,6 +582,21 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
     }, 180);
   }, []);
 
+  const confirmEndSession = useCallback(() => {
+    setBreakModalClosing(true);
+    window.setTimeout(() => {
+      setShowBreakModal(false);
+      setBreakModalClosing(false);
+      setModeState("focus");
+      setSegmentDurationMs(settingsRef.current.focusMin * 60_000);
+      setEndAt(null);
+      setPausedRemainingMs(null);
+      setPhase("idle");
+      flashStop();
+      onRunningChangeRef.current?.(false);
+    }, 180);
+  }, [flashStop]);
+
   const showMiniTimer =
     phase === "running" ||
     (phase === "paused" && pausedRemainingMs != null && pausedRemainingMs > 0);
@@ -605,6 +622,7 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
     quickStartFocus,
     confirmStartBreak,
     confirmSkipBreak,
+    confirmEndSession,
     setBreakModalClosing,
     setShowBreakModal,
     showMiniTimer,
@@ -619,6 +637,7 @@ export const PomodoroProvider: React.FC<ProviderProps> = ({
           long={mode === "long"}
           onStartBreak={confirmStartBreak}
           onSkipBreak={confirmSkipBreak}
+          onEndSession={confirmEndSession}
         />
       )}
     </PomodoroContext.Provider>

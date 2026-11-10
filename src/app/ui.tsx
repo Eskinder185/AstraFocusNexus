@@ -6,6 +6,7 @@ export interface ComposerDefaults {
   priority?: Priority;
   goalId?: string | null;
   dueDate?: string | null;
+  projectId?: string | null;
 }
 
 interface UIState {

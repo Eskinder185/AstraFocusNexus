@@ -15,6 +15,7 @@ interface Overrides {
   dueDate?: string | null;
   dueTime?: string | null;
   goalId?: string | null;
+  projectId?: string | null;
   remind?: boolean;
 }
 
@@ -146,7 +147,7 @@ export const TaskComposerDialog: React.FC = () => {
 };
 
 const ComposerForm: React.FC<{ defaults: Overrides & { title?: string }; onClose: () => void }> = ({ defaults, onClose }) => {
-  const { goals, prefs } = useWorkspace();
+  const { goals, projects, prefs } = useWorkspace();
   const { addTask } = useWorkspaceActions();
   const { showToast } = useAppToast();
   const qa = useQuickAdd(defaults.title ?? "");
@@ -158,12 +159,13 @@ const ComposerForm: React.FC<{ defaults: Overrides & { title?: string }; onClose
   const dueDate = manual.dueDate !== undefined ? manual.dueDate : p.dueDate ?? defaults.dueDate ?? null;
   const dueTime = dueDate ? (manual.dueTime !== undefined ? manual.dueTime : p.dueTime) ?? null : null;
   const goalId = manual.goalId !== undefined ? manual.goalId : defaults.goalId !== undefined ? defaults.goalId : prefs.defaultGoalId;
+  const projectId = manual.projectId !== undefined ? manual.projectId : defaults.projectId ?? null;
   const remind = !!manual.remind && !!dueTime;
   const canAdd = p.title.trim().length > 0;
 
   const submit = () => {
     if (!canAdd) return;
-    addTask({ title: p.title, priority, dueDate, dueTime, goalId, remind });
+    addTask({ title: p.title, priority, dueDate, dueTime, goalId, projectId, remind });
     if (remind && "Notification" in window && Notification.permission === "default") {
       void Notification.requestPermission();
     }
@@ -298,6 +300,26 @@ const ComposerForm: React.FC<{ defaults: Overrides & { title?: string }; onClose
               ))}
             </select>
           </div>
+          {projects.length > 0 && (
+            <div className="field">
+              <label className="label" htmlFor="composer-project">
+                Project
+              </label>
+              <select
+                id="composer-project"
+                className="select"
+                value={projectId ?? ""}
+                onChange={e => setManual(o => ({ ...o, projectId: e.target.value || null }))}
+              >
+                <option value="">No project</option>
+                {projects.map(pr => (
+                  <option key={pr.id} value={pr.id}>
+                    {pr.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="field composer__remind">
             <label className="switch">
               <input

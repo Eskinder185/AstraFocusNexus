@@ -58,8 +58,13 @@ textarea {
   letter-spacing: inherit;
 }
 
+/* Neutralise the UA button chrome (grey ButtonFace fill + outset border) so a
+   button without its own class blends with the theme instead of rendering as a
+   grey box. Classed buttons (.btn, .calendar-place, …) set their own and win. */
 button {
   cursor: pointer;
+  background: transparent;
+  border: 0;
 }
 button:disabled {
   cursor: not-allowed;

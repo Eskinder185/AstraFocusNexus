@@ -149,6 +149,20 @@ test("command palette navigates and creates tasks", async ({ page }) => {
   await expect(quadrant.locator(".task-row__title", { hasText: "Call the bank" })).toBeVisible();
 });
 
+test("New task from a project page adds the task to that project", async ({ page }) => {
+  await fresh(page);
+  await page.goto("./#/projects");
+  await page.getByRole("textbox", { name: "Project name" }).fill("School");
+  await page.keyboard.press("Enter");
+  await page.locator(".projects-layout").getByRole("button", { name: "New task", exact: true }).click();
+  await expect(page.getByLabel("Project", { exact: true })).toHaveValue(/.+/);
+  await page.getByRole("textbox", { name: "Task name" }).fill("Lab report");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".task-row", { hasText: "Lab report" })).toBeVisible();
+  await page.reload();
+  await expect(page.locator(".task-row", { hasText: "Lab report" })).toBeVisible();
+});
+
 const ROUTES = ["", "#/tasks", "#/focus", "#/matrix", "#/goals", "#/wellness", "#/settings", "#/help"];
 
 for (const width of [320, 390, 768, 1280]) {
