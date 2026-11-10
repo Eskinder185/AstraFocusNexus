@@ -7,6 +7,7 @@ import "./styles/components.css";
 import "./styles/shell.css";
 import "./styles/pages.css";
 import "./styles/pro.css";
+import "./styles/ai.css";
 import App from "./App";
 import { unlockNotificationAudio } from "./lib/notificationSound";
 

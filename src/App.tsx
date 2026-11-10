@@ -16,6 +16,7 @@ import { OverviewPage } from "./features/overview/OverviewPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { TasksPage } from "./features/tasks/TasksPage";
 import { WellnessPage } from "./features/wellness/WellnessPage";
+import { AIConnectionProvider } from "./features/ai/AIConnectionProvider";
 import { WorkspaceProvider, useWorkspace, useWorkspaceActions } from "./features/workspace/WorkspaceProvider";
 
 /** Sessions shorter than this (e.g. an accidental start then skip) aren't logged. */
@@ -48,6 +49,7 @@ const App: React.FC = () => (
       <AppToastProvider>
         <WorkspaceProvider>
           <FocusBridge>
+            <AIConnectionProvider>
             <UIProvider>
               <AppShell>
                 <Routes>
@@ -70,6 +72,7 @@ const App: React.FC = () => (
                 </Routes>
               </AppShell>
             </UIProvider>
+            </AIConnectionProvider>
           </FocusBridge>
         </WorkspaceProvider>
       </AppToastProvider>

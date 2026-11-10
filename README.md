@@ -18,6 +18,7 @@ AstraFocus is a calm productivity workspace that brings tasks, priorities, goals
 - **Goals:** progress from the linked work you actually finish, the next action, and time invested.
 - **Wellness:** an optional, private mood, stress and energy check-in with supportive, non-medical suggestions.
 - **Command palette:** <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>K</kbd> to search, navigate, create tasks and control the timer.
+- **AI connections (optional):** bring your own model (Ollama, LM Studio, OpenAI or an OpenAI-compatible server) to break a goal into a reviewable task draft. Keys stay in memory only. See [AI connections](docs/AI_CONNECTIONS.md).
 
 All data stays in your browser on this device. Export it any time from Settings. Accounts and sync are on the [roadmap](docs/IMPLEMENTATION_ROADMAP.md).
 
@@ -42,6 +43,7 @@ Capture review screenshots with `SCREENSHOTS=1 npx playwright test screenshots`.
 - [Product vision](docs/PRODUCT_VISION.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md)
+- [AI connections](docs/AI_CONNECTIONS.md): setup for Ollama, LM Studio, OpenAI and custom servers
 
 ## Deployment
 
