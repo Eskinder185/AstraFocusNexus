@@ -7,6 +7,7 @@ import { useTheme, type ThemeMode } from "../../context/ThemeContext";
 import { cx } from "../../lib/cx";
 import { toDateKey } from "../../lib/dates";
 import { previewNotificationSound, readSoundPreferences, saveSoundPreferences, type SoundPreferences } from "../../lib/notificationSound";
+import { AIConnectionsSection } from "../ai/AIConnectionsSection";
 import { readAllEntries } from "../wellness/wellnessStore";
 import { LEGACY_BACKUP_KEY } from "../workspace/migrate";
 import { normalizeWorkspace, type WorkspaceData } from "../workspace/schema";
@@ -201,6 +202,8 @@ export const SettingsPage: React.FC = () => {
           </button>
         </SettingRow>
       </SettingsSection>
+
+      <AIConnectionsSection />
 
       <SettingsSection title="Privacy">
         <SettingRow label="Wellness check-ins" description="Mood, stress and energy tracking. When off, the page is hidden and nothing new is recorded.">

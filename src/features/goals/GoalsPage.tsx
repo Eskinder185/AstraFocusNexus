@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { CalendarClock, Check, ChevronDown, Pencil, Plus, Target, Timer, Trash2 } from "lucide-react";
+import { CalendarClock, Check, ChevronDown, Pencil, Plus, Sparkles, Target, Timer, Trash2 } from "lucide-react";
 import { PageHeader } from "../../components/PageHeader";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ProgressRing } from "../../components/ui/Progress";
 import { useNow } from "../../hooks/useNow";
 import { cx } from "../../lib/cx";
 import { diffInDays, formatDuration, fromDateKey, relativeDayLabel } from "../../lib/dates";
+import { GoalPlannerDialog } from "../ai/GoalPlannerDialog";
 import { InlineQuickAdd } from "../tasks/TaskComposer";
 import { TaskRow } from "../tasks/TaskRow";
 import type { Goal } from "../workspace/schema";
@@ -17,6 +18,7 @@ const EMOJIS = ["🎯", "🎓", "💼", "📚", "💻", "🏋️", "🏃", "🧘
 export const GoalsPage: React.FC = () => {
   const { goals } = useWorkspace();
   const [creating, setCreating] = useState(false);
+  const [planning, setPlanning] = useState(false);
 
   return (
     <div className="goals-page">
@@ -25,12 +27,19 @@ export const GoalsPage: React.FC = () => {
         description="Name the outcomes that matter, then link tasks to them. Progress comes from the work you actually finish."
         actions={
           !creating && (
-            <button type="button" className="btn btn--primary" onClick={() => setCreating(true)}>
-              <Plus size={16} aria-hidden /> New goal
-            </button>
+            <>
+              <button type="button" className="btn" onClick={() => setPlanning(true)}>
+                <Sparkles size={16} aria-hidden /> Break into tasks
+              </button>
+              <button type="button" className="btn btn--primary" onClick={() => setCreating(true)}>
+                <Plus size={16} aria-hidden /> New goal
+              </button>
+            </>
           )
         }
       />
+
+      {planning && <GoalPlannerDialog open onClose={() => setPlanning(false)} />}
 
       {creating && <GoalForm onDone={() => setCreating(false)} />}
 
