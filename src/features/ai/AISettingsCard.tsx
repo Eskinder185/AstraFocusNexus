@@ -8,15 +8,15 @@ import { PROVIDERS } from "./providers";
 export const AISettingsCard: React.FC = () => {
   const { state, connected } = useAIConnection();
   return (
-    <section className="card settings-section" aria-label="AI assistant">
-      <h2 className="settings-section__title">AI assistant</h2>
+    <section className="card settings-section" aria-label="Bring Your Own AI">
+      <h2 className="settings-section__title">Bring Your Own AI</h2>
       <div className="setting-row">
         <div className="setting-row__text">
           <p className="setting-row__label">
             {connected ? (
               <span className="ai-inline-status"><CheckCircle2 size={15} aria-hidden /> Connected to {state.model}</span>
             ) : state.restored ? (
-              "Local AI saved, not checked yet"
+              "AI settings saved, not connected yet"
             ) : (
               "Not set up"
             )}
@@ -24,7 +24,7 @@ export const AISettingsCard: React.FC = () => {
           <p className="setting-row__desc">
             {connected || state.restored
               ? `${PROVIDERS[state.provider].label} · ${state.baseUrl}`
-              : "Optional. Connect an AI model on your own computer for planning help. Guided setup for beginners."}
+              : "Optional. Use a model on your own computer or your own cloud account for planning help. Guided setup included."}
           </p>
         </div>
         <div className="setting-row__control">

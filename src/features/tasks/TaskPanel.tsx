@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Play, Sparkles, Trash2 } from "lucide-react";
+import { Play, Sparkles, Trash2, Wand2 } from "lucide-react";
 import { useUI, useUIActions } from "../../app/ui";
 import { Dialog } from "../../components/ui/Dialog";
 import { cx } from "../../lib/cx";
@@ -9,6 +9,7 @@ import { PRIORITY_META, PRIORITY_ORDER } from "../workspace/priority";
 import type { Task } from "../workspace/schema";
 import { useWorkspace, useWorkspaceActions } from "../workspace/WorkspaceProvider";
 import { DueChip } from "./TaskRow";
+import { ImproveTaskDialog } from "../ai/ImproveTaskDialog";
 import { ScheduleFields } from "./ScheduleFields";
 import { scheduleOf, validateSchedule, type ScheduleValue } from "../workspace/schedule";
 import { useNow } from "../../hooks/useNow";
@@ -34,6 +35,7 @@ const TaskPanelContent: React.FC<{ task: Task; onClose: () => void }> = ({ task,
   const focusOnTask = useFocusOnTask();
   const now = useNow();
   const [title, setTitle] = useState(task.title);
+  const [improving, setImproving] = useState(false);
   const [notes, setNotes] = useState(task.notes);
 
   // Keep local drafts in sync with changes made elsewhere (e.g. another tab).
@@ -69,6 +71,7 @@ const TaskPanelContent: React.FC<{ task: Task; onClose: () => void }> = ({ task,
   const tone = PRIORITY_META[task.priority].tone;
 
   return (
+    <>
     <Dialog
       open
       onClose={() => {
@@ -85,6 +88,21 @@ const TaskPanelContent: React.FC<{ task: Task; onClose: () => void }> = ({ task,
             <Trash2 size={15} aria-hidden /> Delete
           </button>
           <span className="spacer" />
+          {!done && (
+            <button
+              type="button"
+              className="btn"
+              aria-label="Improve with AI"
+              title="Improve with AI: clearer title, estimate and subtasks"
+              onClick={() => {
+                commitTitle();
+                commitNotes();
+                setImproving(true);
+              }}
+            >
+              <Wand2 size={15} aria-hidden /> Improve
+            </button>
+          )}
           {!done && (
             <button
               type="button"
@@ -280,5 +298,7 @@ const TaskPanelContent: React.FC<{ task: Task; onClose: () => void }> = ({ task,
         )}
       </div>
     </Dialog>
+    {improving && <ImproveTaskDialog task={task} onClose={() => setImproving(false)} />}
+    </>
   );
 };

@@ -9,6 +9,7 @@ import "./styles/pages.css";
 import "./styles/pro.css";
 import "./styles/ai.css";
 import "./styles/ai-setup.css";
+import "./styles/ai-actions.css";
 import App from "./App";
 import { unlockNotificationAudio } from "./lib/notificationSound";
 

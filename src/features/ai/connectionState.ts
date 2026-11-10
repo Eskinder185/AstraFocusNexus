@@ -4,8 +4,8 @@
  * - Changing the model clears the verified status and model details (not the key).
  * - Nothing may be sent until the user has consented to the current destination.
  * - "connected" is only ever set from a real, successful check in this session.
- * The API key is never persisted. Non-secret settings for local servers may be
- * restored from configStore (see AIConnectionProvider), always as "not checked yet".
+ * The API key and the permission are never persisted. If the user opts in (`remember`),
+ * provider, URL and model are restored from configStore, always as "not checked yet".
  */
 import type { ChatMetrics, ModelInfo } from "./client";
 import { validateEndpoint } from "./endpoint";
@@ -49,6 +49,8 @@ export interface ConnectionState {
   inference: InferenceResult | null;
   /** Settings were restored from a previous visit and haven't been checked this session. */
   restored: boolean;
+  /** The user opted in to remembering provider, URL and model on this device. */
+  remember: boolean;
 }
 
 export type ConnectionAction =
@@ -65,6 +67,7 @@ export type ConnectionAction =
   | { type: "diagnostic"; diagnostic: Diagnostic }
   | { type: "resetDiagnostics" }
   | { type: "inference"; result: InferenceResult | null }
+  | { type: "remember"; value: boolean }
   | { type: "disconnect" }
   | { type: "clear" };
 
@@ -82,6 +85,7 @@ export function initialConnection(provider: ProviderId = "ollama"): ConnectionSt
     diagnostics: [],
     inference: null,
     restored: false,
+    remember: false,
   };
 }
 
@@ -139,6 +143,8 @@ export function connectionReducer(state: ConnectionState, action: ConnectionActi
       return { ...state, diagnostics: [], inference: null };
     case "inference":
       return { ...state, inference: action.result };
+    case "remember":
+      return { ...state, remember: action.value };
     case "disconnect":
       // Forget the key and session results; keep the (non-secret) destination and model.
       return { ...state, apiKey: "", status: { kind: "idle" }, diagnostics: [], inference: null, consentFor: null };

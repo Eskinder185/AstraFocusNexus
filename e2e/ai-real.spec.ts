@@ -15,6 +15,7 @@ test("real Ollama: scan, connect, stream a reply, break a goal into tasks", asyn
   await page.goto("./");
   await page.evaluate(() => localStorage.clear());
   await page.goto("./#/ai");
+  await page.getByRole("button", { name: /Use AI on this computer/ }).click();
   await page.getByRole("button", { name: /I already have a local AI/ }).click();
   await page.getByRole("button", { name: "Scan this computer" }).click();
   const found = page.locator(".ai-scan__item.is-found", { hasText: "Ollama" });

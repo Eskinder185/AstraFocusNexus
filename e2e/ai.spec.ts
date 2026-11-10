@@ -95,7 +95,7 @@ test("API key stays in memory: survives navigation, never stored or exported, go
   // Reload clears it.
   await page.goto("./#/ai");
   await page.reload();
-  await expect(page.getByRole("button", { name: /I already have a local AI/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Use AI on this computer/ })).toBeVisible();
   const after = await openManual(page);
   await expect(after.getByLabel("Provider", { exact: true })).toHaveValue("ollama");
   await expect(after.getByLabel(/^API key/)).toHaveValue("");

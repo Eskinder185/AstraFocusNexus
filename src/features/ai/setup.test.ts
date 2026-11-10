@@ -134,35 +134,34 @@ describe("installation guide", () => {
   });
 });
 
-describe("config storage", () => {
+describe("config storage (opt-in)", () => {
   let store: Map<string, string>;
   beforeEach(() => {
     store = installMemoryStorage();
   });
-  it("remembers non-secret settings for local servers", () => {
-    saveAIConfig({ provider: "ollama", baseUrl: "http://127.0.0.1:11434/", model: "qwen3:8b", consentFor: "http://127.0.0.1:11434" });
-    expect(loadAIConfig()).toEqual({ v: 1, provider: "ollama", baseUrl: "http://127.0.0.1:11434", model: "qwen3:8b", consentFor: "http://127.0.0.1:11434" });
+  it("remembers provider, URL and model, never a permission or key", () => {
+    saveAIConfig({ provider: "ollama", baseUrl: "http://127.0.0.1:11434/", model: "qwen3:8b", consentFor: "http://127.0.0.1:11434", apiKey: "sk-should-not-save" } as never);
+    expect(loadAIConfig()).toEqual({ v: 2, provider: "ollama", baseUrl: "http://127.0.0.1:11434", model: "qwen3:8b" });
+    expect(store.get(AI_CONFIG_KEY)).not.toMatch(/sk-should-not-save|consent/);
   });
-  it("never stores an API key even if one is passed in", () => {
-    saveAIConfig({ provider: "lmstudio", baseUrl: "http://127.0.0.1:1234/v1", model: "m", consentFor: null, apiKey: "sk-should-not-save" } as never);
-    expect(store.get(AI_CONFIG_KEY)).not.toContain("sk-should-not-save");
+  it("can remember a remote endpoint's address and model (non-secret) when opted in", () => {
+    saveAIConfig({ provider: "openai", baseUrl: "https://api.openai.com/v1", model: "gpt" });
+    expect(loadAIConfig()).toMatchObject({ provider: "openai", baseUrl: "https://api.openai.com/v1" });
   });
-  it("does not remember remote endpoints and removes an earlier local setup", () => {
-    saveAIConfig({ provider: "ollama", baseUrl: "http://127.0.0.1:11434", model: "m", consentFor: null });
-    saveAIConfig({ provider: "openai", baseUrl: "https://api.openai.com/v1", model: "gpt", consentFor: "https://api.openai.com/v1" });
-    expect(store.has(AI_CONFIG_KEY)).toBe(false);
+  it("drops a permission saved by an older version", () => {
+    store.set(AI_CONFIG_KEY, JSON.stringify({ v: 1, provider: "ollama", baseUrl: "http://127.0.0.1:11434", model: "x", consentFor: "http://127.0.0.1:11434" }));
+    expect(loadAIConfig()).toEqual({ v: 2, provider: "ollama", baseUrl: "http://127.0.0.1:11434", model: "x" });
+  });
+  it("ignores tampered data on load", () => {
+    store.set(AI_CONFIG_KEY, JSON.stringify({ v: 2, provider: "custom", baseUrl: "http://evil.example.com/v1", model: "x" }));
     expect(loadAIConfig()).toBeNull();
-  });
-  it("ignores tampered or remote data on load", () => {
-    store.set(AI_CONFIG_KEY, JSON.stringify({ v: 1, provider: "custom", baseUrl: "https://evil.example.com/v1", model: "x", consentFor: "https://evil.example.com/v1" }));
+    store.set(AI_CONFIG_KEY, JSON.stringify({ v: 2, provider: "nope", baseUrl: "http://127.0.0.1:1" }));
     expect(loadAIConfig()).toBeNull();
-    store.set(AI_CONFIG_KEY, JSON.stringify({ v: 1, provider: "ollama", baseUrl: "http://127.0.0.1:11434", model: "x", consentFor: "http://127.0.0.1:9999" }));
-    expect(loadAIConfig()?.consentFor).toBeNull();
     store.set(AI_CONFIG_KEY, "{not json");
     expect(loadAIConfig()).toBeNull();
   });
   it("clears", () => {
-    saveAIConfig({ provider: "ollama", baseUrl: "http://127.0.0.1:11434", model: "m", consentFor: null });
+    saveAIConfig({ provider: "ollama", baseUrl: "http://127.0.0.1:11434", model: "m" });
     clearAIConfig();
     expect(store.size).toBe(0);
   });

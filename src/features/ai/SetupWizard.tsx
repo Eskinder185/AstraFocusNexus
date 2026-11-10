@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { cx } from "../../lib/cx";
 import { useAIConnection } from "./AIConnectionProvider";
 import { CommandBlock, DiagnosticsList, GuideSteps, ModelMeta, SourceBadge } from "./aiUi";
+import { RememberSetting } from "./aiActions";
 import type { ScanResult } from "./discovery";
 import { validateEndpoint } from "./endpoint";
 import { applySignals, emptyProfile, readBrowserSignals, type AiTask, type Field, type GpuVendor, type HardwareProfile, type OS } from "./hardware";
@@ -672,8 +673,8 @@ const DoneStep: React.FC<{ onExit: () => void }> = ({ onExit }) => {
       <ul className="ai-consent__list">
         <li>Use it from Goals → <strong>Break into tasks</strong>.</li>
         <li>AI only sees text you choose to send, and never changes your tasks without your review.</li>
-        <li>Your local setup is remembered on this device (never any API key). Check it again from the AI page each visit.</li>
       </ul>
+      <RememberSetting />
       <div className="ai-actions">
         <Link to="/goals" className="btn btn--primary"><Sparkles size={16} aria-hidden /> Break a goal into tasks</Link>
         <button type="button" className="btn" onClick={onExit}>Go to AI dashboard</button>

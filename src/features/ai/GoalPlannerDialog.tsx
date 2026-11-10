@@ -1,13 +1,10 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Loader2, Plus, Sparkles, Trash2, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Plus, Sparkles, Trash2, X } from "lucide-react";
 import { Dialog } from "../../components/ui/Dialog";
 import { useAppToast } from "../../context/AppToast";
 import { cx } from "../../lib/cx";
 import { useWorkspace, useWorkspaceActions } from "../workspace/WorkspaceProvider";
-import { useAIConnection } from "./AIConnectionProvider";
-import { AIError } from "./client";
-import { validateEndpoint } from "./endpoint";
+import { ActionStatus, ActiveModelLine, NotConnectedNotice, SendPreview, useAIAction, type ParseOutcome } from "./aiActions";
 import {
   DESCRIPTION_MAX,
   GOAL_MAX_CHARS,
@@ -25,7 +22,11 @@ interface Draft extends TaskSuggestion {
   selected: boolean;
 }
 
-type Phase = { kind: "compose" } | { kind: "loading" } | { kind: "review"; dropped: number } | { kind: "error"; message: string };
+type Parsed = { tasks: TaskSuggestion[]; dropped: number };
+const parse = (reply: string): ParseOutcome<Parsed> => {
+  const r = parseSuggestions(reply);
+  return r.ok ? { ok: true, value: { tasks: r.tasks, dropped: r.dropped } } : r;
+};
 
 /**
  * Break a goal into tasks. Sends only the goal text; creates tasks only when the user
@@ -35,55 +36,43 @@ export const GoalPlannerDialog: React.FC<{ open: boolean; onClose: () => void; i
   const { goals } = useWorkspace();
   const { addTask } = useWorkspaceActions();
   const { showToast } = useAppToast();
-  const { state, connected, chat } = useAIConnection();
+  const { phase: request, run, cancel, reset, connected } = useAIAction<Parsed>();
   const ids = { goalText: useId(), goalSelect: useId(), link: useId() };
 
   const [source, setSource] = useState<"text" | "existing">(initialGoalId ? "existing" : "text");
   const [text, setText] = useState("");
   const [goalId, setGoalId] = useState<string>(initialGoalId ?? goals[0]?.id ?? "");
   const [linkGoalId, setLinkGoalId] = useState<string>(initialGoalId ?? "");
-  const [phase, setPhase] = useState<Phase>({ kind: "compose" });
+  const [review, setReview] = useState<{ dropped: number } | null>(null);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [adding, setAdding] = useState(false);
   const addedRef = useRef(false);
-  const controllerRef = useRef<AbortController | null>(null);
-
-  // Abort an in-flight request if the dialog closes.
-  useEffect(() => () => controllerRef.current?.abort(), []);
 
   const chosenGoal = goals.find(g => g.id === goalId);
   const goalText = (source === "existing" ? chosenGoal?.title ?? "" : text).trim().slice(0, GOAL_MAX_CHARS);
   const messages = useMemo(() => buildGoalMessages(goalText), [goalText]);
-  const endpoint = validateEndpoint(state.baseUrl);
   const selected = drafts.filter(d => d.selected && d.title.trim());
+  const loading = request.kind === "loading";
+
+  // A validated reply becomes an editable draft.
+  useEffect(() => {
+    if (request.kind !== "done") return;
+    addedRef.current = false;
+    setDrafts(request.value.tasks.map((t, i) => ({ ...t, key: `${Date.now()}-${i}`, selected: true })));
+    if (source === "existing") setLinkGoalId(goalId);
+    setReview({ dropped: request.value.dropped });
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request]);
 
   const close = () => {
-    controllerRef.current?.abort();
+    cancel();
     onClose();
   };
 
-  const generate = async () => {
-    if (!goalText || !connected || phase.kind === "loading") return;
-    const controller = new AbortController();
-    controllerRef.current = controller;
-    setPhase({ kind: "loading" });
-    try {
-      const { text: reply } = await chat(messages, { format: GOAL_TASKS_FORMAT, signal: controller.signal });
-      const parsed = parseSuggestions(reply);
-      if (!parsed.ok) {
-        setPhase({ kind: "error", message: parsed.error });
-        return;
-      }
-      addedRef.current = false;
-      setDrafts(parsed.tasks.map((t, i) => ({ ...t, key: `${Date.now()}-${i}`, selected: true })));
-      if (source === "existing") setLinkGoalId(goalId);
-      setPhase({ kind: "review", dropped: parsed.dropped });
-    } catch (e) {
-      if (e instanceof AIError && e.kind === "cancelled") setPhase({ kind: "compose" });
-      else setPhase({ kind: "error", message: e instanceof AIError ? e.message : "Something went wrong. Try again." });
-    } finally {
-      if (controllerRef.current === controller) controllerRef.current = null;
-    }
+  const generate = () => {
+    if (!goalText) return;
+    void run(messages, GOAL_TASKS_FORMAT, parse);
   };
 
   const update = (key: string, patch: Partial<Draft>) => setDrafts(ds => ds.map(d => (d.key === key ? { ...d, ...patch } : d)));
@@ -105,50 +94,41 @@ export const GoalPlannerDialog: React.FC<{ open: boolean; onClose: () => void; i
     onClose();
   };
 
-  const footer =
-    phase.kind === "review" ? (
-      <>
-        <button type="button" className="btn btn--ghost" onClick={() => setPhase({ kind: "compose" })} disabled={adding}>
-          Back
-        </button>
-        <button type="button" className="btn btn--primary" onClick={addSelected} disabled={adding || selected.length === 0}>
-          <Plus size={16} aria-hidden /> Add selected tasks ({selected.length})
-        </button>
-      </>
-    ) : phase.kind === "loading" ? (
-      <button type="button" className="btn" onClick={() => controllerRef.current?.abort()}>
-        <X size={15} aria-hidden /> Cancel
+  const footer = review ? (
+    <>
+      <button type="button" className="btn btn--ghost" onClick={() => setReview(null)} disabled={adding}>
+        Back
       </button>
-    ) : (
-      <>
-        <button type="button" className="btn btn--ghost" onClick={close}>Close</button>
-        <button type="button" className="btn btn--primary" onClick={() => void generate()} disabled={!connected || !goalText}>
-          <Sparkles size={16} aria-hidden /> Break into tasks
-        </button>
-      </>
-    );
+      <button type="button" className="btn btn--primary" onClick={addSelected} disabled={adding || selected.length === 0}>
+        <Plus size={16} aria-hidden /> Add selected tasks ({selected.length})
+      </button>
+    </>
+  ) : loading ? (
+    <button type="button" className="btn" onClick={cancel}>
+      <X size={15} aria-hidden /> Cancel
+    </button>
+  ) : (
+    <>
+      <button type="button" className="btn btn--ghost" onClick={close}>Close</button>
+      <button type="button" className="btn btn--primary" onClick={generate} disabled={!connected || !goalText}>
+        <Sparkles size={16} aria-hidden /> Break into tasks
+      </button>
+    </>
+  );
 
   return (
     <Dialog open={open} onClose={close} title="Break a goal into tasks" className="ai-planner" footer={footer}>
       <div className="dialog__body">
-        {!connected && (
-          <div className="ai-note ai-note--warning" role="note">
-            <AlertTriangle size={16} aria-hidden />
-            <p>
-              No AI model is connected. <Link to="/ai" onClick={close}>Set one up on the AI assistant page</Link>, check it, then
-              come back. Everything else in AstraFocus works without AI.
-            </p>
-          </div>
-        )}
+        {connected ? <ActiveModelLine /> : <NotConnectedNotice onNavigate={close} />}
 
-        {phase.kind !== "review" && (
+        {!review && (
           <>
             {goals.length > 0 && (
               <div className="segmented ai-source" role="radiogroup" aria-label="Goal source">
-                <button type="button" role="radio" aria-checked={source === "text"} onClick={() => setSource("text")} disabled={phase.kind === "loading"}>
+                <button type="button" role="radio" aria-checked={source === "text"} onClick={() => setSource("text")} disabled={loading}>
                   Type a goal
                 </button>
-                <button type="button" role="radio" aria-checked={source === "existing"} onClick={() => setSource("existing")} disabled={phase.kind === "loading"}>
+                <button type="button" role="radio" aria-checked={source === "existing"} onClick={() => setSource("existing")} disabled={loading}>
                   Use an existing goal
                 </button>
               </div>
@@ -157,7 +137,7 @@ export const GoalPlannerDialog: React.FC<{ open: boolean; onClose: () => void; i
             {source === "existing" && goals.length > 0 ? (
               <div className="field">
                 <label className="label" htmlFor={ids.goalSelect}>Goal</label>
-                <select id={ids.goalSelect} className="select" value={goalId} onChange={e => setGoalId(e.target.value)} disabled={phase.kind === "loading"}>
+                <select id={ids.goalSelect} className="select" value={goalId} onChange={e => setGoalId(e.target.value)} disabled={loading}>
                   {goals.map(g => (
                     <option key={g.id} value={g.id}>{g.emoji} {g.title}</option>
                   ))}
@@ -176,45 +156,24 @@ export const GoalPlannerDialog: React.FC<{ open: boolean; onClose: () => void; i
                   placeholder="e.g. Pass the CCNA exam in six weeks"
                   value={text}
                   onChange={e => setText(e.target.value)}
-                  disabled={phase.kind === "loading"}
+                  disabled={loading}
                 />
                 <p className="hint">{text.length}/{GOAL_MAX_CHARS} characters. Avoid personal or sensitive details.</p>
               </div>
             )}
 
-            {goalText && endpoint.ok && (
-              <section className="ai-preview" aria-label="What will be sent">
-                <p>
-                  <strong>What will be sent</strong> to <span className="ai-wrap">{endpoint.host}</span>
-                  {state.model.trim() && <> using <code className="ai-wrap">{state.model.trim()}</code></>}:
-                </p>
-                <pre>{messages[1].content}</pre>
-                <details>
-                  <summary>Plus these fixed instructions</summary>
-                  <pre>{messages[0].content}</pre>
-                </details>
-              </section>
-            )}
+            {goalText && connected && <SendPreview items={[{ label: "Goal", value: messages[1].content }]} instructions={messages[0].content} />}
 
-            {phase.kind === "loading" && (
-              <p className="ai-status__row" role="status">
-                <Loader2 size={16} className="ai-spin" aria-hidden /> Waiting for the model… local models can take a few minutes.
-              </p>
-            )}
-            {phase.kind === "error" && (
-              <p className="ai-status__row ai-status--error" role="alert">
-                <AlertTriangle size={16} aria-hidden /> <span className="ai-wrap">{phase.message}</span>
-              </p>
-            )}
+            <ActionStatus phase={request} />
           </>
         )}
 
-        {phase.kind === "review" && (
+        {review && (
           <>
             <div className="ai-review-head">
               <p className="muted">
                 Review the draft. Nothing is added until you choose <strong>Add selected tasks</strong>.
-                {phase.dropped > 0 && ` ${phase.dropped} unusable ${phase.dropped === 1 ? "item was" : "items were"} skipped.`}
+                {review.dropped > 0 && ` ${review.dropped} unusable ${review.dropped === 1 ? "item was" : "items were"} skipped.`}
               </p>
             </div>
             <ol className="ai-suggestions" aria-label="Suggested tasks">

@@ -1,8 +1,8 @@
 /**
  * Shared AI connection. The API key lives in React state only — never localStorage,
- * sessionStorage, IndexedDB, URLs or exports. Non-secret settings for servers on this
- * device are remembered (configStore) and restored as "not checked yet"; nothing is
- * sent on page load.
+ * sessionStorage, IndexedDB, URLs or exports. Provider, URL and model are remembered only
+ * when the user opts in, and come back as "not checked yet" without any permission; nothing
+ * is sent on page load.
  */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from "react";
 import { AIError, type ChatMessage, type ChatOptions, type ChatResult, type ConnectionTarget } from "./client";
@@ -41,7 +41,7 @@ const messageOf = (e: unknown) => (e instanceof AIError ? e.message : "Something
 function initState(): ConnectionState {
   const saved = loadAIConfig();
   if (!saved) return initialConnection();
-  return { ...initialConnection(saved.provider), baseUrl: saved.baseUrl, model: saved.model, consentFor: saved.consentFor, restored: true };
+  return { ...initialConnection(saved.provider), baseUrl: saved.baseUrl, model: saved.model, restored: true, remember: true };
 }
 
 export const AIConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -58,12 +58,11 @@ export const AIConnectionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // A destination change invalidates anything still in flight to the old one.
   useEffect(() => cancel, [state.provider, state.baseUrl, cancel]);
 
-  // Remember non-secret settings for local servers (never the key), but only once the
-  // user has actually set something up; untouched defaults leave no trace.
+  // Remember provider, URL and model only when the user opted in. Never the key or permission.
   useEffect(() => {
-    if (!state.consentFor && !state.model.trim()) clearAIConfig();
-    else saveAIConfig({ provider: state.provider, baseUrl: state.baseUrl, model: state.model, consentFor: state.consentFor });
-  }, [state.provider, state.baseUrl, state.model, state.consentFor]);
+    if (state.remember) saveAIConfig({ provider: state.provider, baseUrl: state.baseUrl, model: state.model });
+    else clearAIConfig();
+  }, [state.provider, state.baseUrl, state.model, state.remember]);
 
   const target = (s: ConnectionState): ConnectionTarget => ({
     baseUrl: s.baseUrl,

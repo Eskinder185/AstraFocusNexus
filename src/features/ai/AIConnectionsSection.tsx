@@ -2,11 +2,16 @@ import React, { useEffect, useId, useState } from "react";
 import { AlertTriangle, CheckCircle2, Eye, EyeOff, Info, Loader2, Plug, RefreshCw, X } from "lucide-react";
 import { cx } from "../../lib/cx";
 import { useAIConnection } from "./AIConnectionProvider";
+import { RememberSetting } from "./aiActions";
 import { validateEndpoint } from "./endpoint";
 import { PROVIDER_ORDER, PROVIDERS, type ProviderId } from "./providers";
 
 /** Settings → AI connections. Optional; everything else in AstraFocus works without it. */
-export const AIConnectionsSection: React.FC = () => {
+/**
+ * The connection form. `variant="cloud"` hides the provider picker (the cloud setup shows
+ * provider cards instead) and uses cloud-focused wording. Same state either way.
+ */
+export const AIConnectionsSection: React.FC<{ variant?: "manual" | "cloud" }> = ({ variant = "manual" }) => {
   const { state, dispatch, testConnection, loadModels, cancel, connected } = useAIConnection();
   const [showKey, setShowKey] = useState(false);
   const [urlDraft, setUrlDraft] = useState(state.baseUrl);
@@ -34,22 +39,23 @@ export const AIConnectionsSection: React.FC = () => {
         </h2>
         <ConnectionBadge />
       </div>
-      <p className="setting-row__desc ai-section__intro">
-        For cloud providers (your own API key), custom OpenAI-compatible servers, or when you’d rather type the details yourself. The guided setup
-        above is easier for local apps.
-      </p>
+      {variant === "manual" && (
+        <p className="setting-row__desc ai-section__intro">
+          For any supported provider when you’d rather type the details yourself. The guided setups above are easier.
+        </p>
+      )}
 
       <div className="ai-note ai-note--info" role="note">
         <Info size={16} aria-hidden />
         <p>
           <strong>API keys stay in memory only.</strong> A key lasts while you move around the app and is forgotten when you reload or close
-          AstraFocus. It’s never saved, exported, or sent anywhere except the server you approve below. For servers on this computer, the
-          address, model and permission (never a key) are remembered on this device; cloud and remote settings are not.
+          AstraFocus. It’s never saved, exported, or sent anywhere except the server you approve below. Provider, address and model are
+          remembered only if you turn on “Remember” below; the key and your permission never are.
         </p>
       </div>
 
       <div className="ai-form">
-        <div className="field">
+        {variant === "manual" && <div className="field">
           <label className="label" htmlFor={ids.provider}>Provider</label>
           <select
             id={ids.provider}
@@ -65,7 +71,7 @@ export const AIConnectionsSection: React.FC = () => {
             ))}
           </select>
           <p className="hint">{preset.setupHint}</p>
-        </div>
+        </div>}
 
         <div className="field">
           <label className="label" htmlFor={ids.url}>API base URL</label>
@@ -203,6 +209,7 @@ export const AIConnectionsSection: React.FC = () => {
       </div>
 
       <StatusLine connected={connected} />
+      <RememberSetting />
 
       <details className="ai-help">
         <summary>Can’t connect? Setup and browser notes</summary>
@@ -223,6 +230,11 @@ export const AIConnectionsSection: React.FC = () => {
               <strong>Browser permission:</strong> when a website contacts a server on your device, recent versions of Chrome and Edge ask
               whether to allow access to local network devices. Choose Allow. Some browsers block it entirely; running AstraFocus locally with
               <code>npm run dev</code> avoids that.
+            </li>
+            <li>
+              <strong>“localhost” means this device.</strong> <code>localhost</code> and <code>127.0.0.1</code> always point at the device
+              running this browser. On a phone they point at the phone, so a phone can’t reach a model on your desktop that way. Use AstraFocus on
+              the computer that runs the model.
             </li>
             <li><strong>Cloud providers</strong> must allow direct browser requests. If a provider blocks them, it can’t be used here; AstraFocus doesn’t route keys through a third-party proxy.</li>
           </ul>

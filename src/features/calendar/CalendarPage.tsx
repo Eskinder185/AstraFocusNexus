@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { CalendarCheck, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useUIActions } from "../../app/ui";
 import { PageHeader } from "../../components/PageHeader";
 import { addDays, formatClock, formatTime, toDateKey } from "../../lib/dates";
 import { formatSchedule, scheduleSpan, spanCoversDay, type ScheduleSpan } from "../workspace/schedule";
 import { useFocusOnTask } from "../focus/useFocusOnTask";
+import { PlanDayDialog } from "../ai/PlanDayDialog";
 import type { Task } from "../workspace/schema";
 import { useWorkspace, useWorkspaceActions } from "../workspace/WorkspaceProvider";
 
@@ -22,6 +23,7 @@ export const CalendarPage: React.FC = () => {
   const [cursor, setCursor] = useState(() => new Date());
   const [view, setView] = useState<View>("week");
   const [pickedTask, setPickedTask] = useState("");
+  const [planning, setPlanning] = useState(false);
   const scheduled = useMemo(() => tasks.filter(t => t.scheduledAt != null).sort((a, b) => (a.scheduledAt ?? 0) - (b.scheduledAt ?? 0)), [tasks]);
   const unscheduled = tasks.filter(t => t.status === "todo" && t.scheduledAt == null);
   // Start→due schedules. Only tasks with BOTH a start and a due date have a span; a single
@@ -88,8 +90,12 @@ export const CalendarPage: React.FC = () => {
 
   return <div className="calendar-page">
     <PageHeader title="Calendar" description="Plan work blocks separately from deadlines. Tasks with a start and a due date appear as dashed schedule items." actions={
-      <button type="button" className="btn btn--primary" onClick={() => openComposer()}><Plus size={16} aria-hidden /> New task</button>
+      <>
+        <button type="button" className="btn" onClick={() => setPlanning(true)}><CalendarCheck size={16} aria-hidden /> Plan my day</button>
+        <button type="button" className="btn btn--primary" onClick={() => openComposer()}><Plus size={16} aria-hidden /> New task</button>
+      </>
     } />
+    {planning && <PlanDayDialog onClose={() => setPlanning(false)} initialDate={toDateKey(view === "day" && cursor.getTime() > Date.now() ? cursor : new Date())} />}
     <div className="calendar-toolbar card">
       <div className="row">
         <button type="button" className="btn btn--sm" onClick={() => move(-1)} aria-label="Previous period"><ChevronLeft size={16} /></button>

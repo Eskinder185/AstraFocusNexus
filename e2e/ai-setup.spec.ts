@@ -6,9 +6,15 @@ import { closePorts, freshAIPage, mockOllama, OLLAMA } from "./aiMocks";
 const next = (page: Page) => page.getByRole("button", { name: "Next" });
 const heading = (page: Page) => page.locator(".ai-wizard__title");
 
+/** Welcome → "Use AI on this computer" → one of the two local paths. */
+async function chooseLocal(page: Page, path: RegExp) {
+  await page.getByRole("button", { name: /Use AI on this computer/ }).click();
+  await page.getByRole("button", { name: path }).click();
+}
+
 async function startExisting(page: Page) {
   await freshAIPage(page);
-  await page.getByRole("button", { name: /I already have a local AI/ }).click();
+  await chooseLocal(page, /I already have a local AI/);
   await expect(heading(page)).toHaveText("Find your local AI");
 }
 
@@ -131,7 +137,7 @@ test("inference timeout", async ({ page }) => {
 test("install path: hardware, recommendations, OS instructions, copy, pull command", async ({ page, context, browserName }) => {
   if (browserName === "chromium") await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await freshAIPage(page);
-  await page.getByRole("button", { name: /Help me install my first AI/ }).click();
+  await chooseLocal(page, /Help me install my first AI/);
   await expect(heading(page)).toHaveText("About your computer");
 
   // Values the browser exposes are labelled Detected; others are Unknown until entered.
@@ -183,6 +189,8 @@ test("wizard is keyboard accessible and moves focus to each step", async ({ page
   await mockOllama(page);
   await closePorts(page);
   await freshAIPage(page);
+  await page.getByRole("button", { name: /Use AI on this computer/ }).focus();
+  await page.keyboard.press("Enter");
   await page.getByRole("button", { name: /I already have a local AI/ }).focus();
   await page.keyboard.press("Enter");
   await expect(heading(page)).toHaveText("Find your local AI");
@@ -202,25 +210,45 @@ test("wizard is keyboard accessible and moves focus to each step", async ({ page
   await expect(next(page)).toBeEnabled();
 });
 
-test("local setup is remembered without the key or any automatic request", async ({ page }) => {
+test("nothing is remembered unless the user opts in", async ({ page }) => {
+  await mockOllama(page);
+  await closePorts(page);
+  await reachTest(page);
+  await page.getByRole("button", { name: "Exit setup" }).click();
+  await page.reload();
+  await expect(page.getByRole("button", { name: /Use AI on this computer/ })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("astra.ai.config.v1"))).toBeNull();
+});
+
+test("opt-in remembers provider, URL and model only; no request or permission after reload", async ({ page }) => {
   const hits = await mockOllama(page);
   await closePorts(page);
   await reachTest(page);
+  await page.getByRole("button", { name: "Exit setup" }).click();
+  await page.getByLabel(/Remember provider, server and model on this device/).first().check();
   const before = hits.version + hits.tags + hits.show + hits.chat;
   await page.reload();
-  await expect(page.locator(".ai-dash__status")).toContainText("Saved, not checked yet");
-  await expect(page.locator(".ai-dash__status")).toContainText("llama3.2:3b");
+  const status = page.locator(".ai-dash__status");
+  await expect(status).toContainText("Saved, not checked yet");
+  await expect(status).toContainText("llama3.2:3b");
   await page.waitForTimeout(300);
   expect(hits.version + hits.tags + hits.show + hits.chat).toBe(before); // no request on load
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("astra.ai.config.v1")!));
-  expect(saved).toEqual({ v: 1, provider: "ollama", baseUrl: OLLAMA, model: "llama3.2:3b", consentFor: OLLAMA });
+  expect(saved).toEqual({ v: 2, provider: "ollama", baseUrl: OLLAMA, model: "llama3.2:3b" });
 
+  // Permission isn't remembered: the user must allow it again before anything is sent.
+  const consent = page.locator(".ai-dash__privacy").getByLabel(/Allow AstraFocus to send requests/);
+  await expect(consent).not.toBeChecked();
   await page.getByRole("button", { name: "Run connection test" }).click();
-  await expect(page.locator(".ai-dash__status").getByText("Connected", { exact: true })).toBeVisible();
+  await expect(status).toContainText("Confirm that AstraFocus may send requests");
+  expect(hits.version + hits.tags + hits.show + hits.chat).toBe(before);
+  await consent.check();
+  await page.getByRole("button", { name: "Run connection test" }).click();
+  await expect(status.getByText("Connected", { exact: true })).toBeVisible();
 
   page.once("dialog", d => d.accept());
   await page.getByRole("button", { name: "Reset" }).click();
-  await expect(page.getByRole("button", { name: /I already have a local AI/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Use AI on this computer/ })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem("astra.ai.config.v1"))).toBeNull();
 });
 
@@ -239,7 +267,7 @@ for (const width of [375, 430]) {
     const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     await freshAIPage(page);
     expect(await overflow()).toBeLessThanOrEqual(0);
-    await page.getByRole("button", { name: /Help me install my first AI/ }).click();
+    await chooseLocal(page, /Help me install my first AI/);
     for (let i = 0; i < 5; i++) {
       expect(await overflow(), `step ${i + 1}`).toBeLessThanOrEqual(0);
       await next(page).click();

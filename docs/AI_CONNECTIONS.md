@@ -1,17 +1,39 @@
-# AI assistant (Bring Your Own AI)
+# AI assistant: Bring Your Own AI (BYOAI)
 
 AstraFocus can optionally use an AI model **you** run or provide. Everything else in the app
 works without it, nothing is sent in the background, and no AstraFocus account is needed.
 
-- **Set up:** sidebar → **AI assistant** (`#/ai`). Settings shows a short summary that links there.
-- **Use:** Goals → **Break into tasks**.
+- **Set up:** sidebar → **AI assistant** (`#/ai`), or Settings → **Bring Your Own AI** → Set up AI.
+- **Two paths:** **Use AI on this computer** (Ollama / LM Studio, with a guided install) or
+  **Connect a cloud provider** (OpenAI or another OpenAI-compatible HTTPS service). A
+  **Manual connection** panel exposes every setting for any supported provider.
+- **Use it:** Goals → **Break into tasks**; Calendar → **Plan my day**; open any task →
+  **Improve** (Improve with AI). All three use the same active connection.
 - **Providers:** Ollama (native API), LM Studio and any OpenAI-compatible server
   (`/v1/chat/completions`), and OpenAI with your own key. Native Anthropic and Gemini APIs are
   **not** supported.
 
-## The setup wizard
+## AI actions
 
-Two entry points on the AI assistant page:
+All actions share one layer (`aiActions.tsx`): the active model is shown in the dialog, a
+**What will be sent** preview lists exactly what leaves the device, one request is made (no
+retries, cancellable), the reply is validated, and nothing changes until **Add** / **Apply**.
+Repeated clicks can't apply twice.
+
+| Action | Sends | Returns | Applies |
+| --- | --- | --- | --- |
+| Break a goal into tasks | the typed goal, or one chosen goal's title | tasks with description, minutes, order | selected tasks are added |
+| Plan my day | chosen day, working hours, the tasks you tick (title, priority, estimate, start/due), busy times **without titles** | one work block per task + unscheduled reasons | planned work blocks (`scheduledAt`) only; estimates only if you tick “Also set the effort estimate” |
+| Improve a task | the task title; its notes only if you tick “Include this task’s notes” | clearer title, short description, estimate, subtasks | each part is opt-in; subtasks become new tasks linked to the same goal/project |
+
+Plan my day re-checks every suggested block locally (`planDay.ts`): working hours, overlaps
+with already-planned blocks and with each other, the task’s start, the task’s due, and times
+already past. Blocks with conflicts can’t be applied until you edit them. Deadlines are never
+changed, and the start-to-due window is never treated as effort.
+
+## The local setup wizard
+
+“Use AI on this computer” offers two paths:
 
 **“I already have a local AI”** (4 steps)
 1. **Find:** “Scan this computer” checks `127.0.0.1` ports 11434 (Ollama), 1234 (LM Studio)
@@ -69,11 +91,11 @@ and **Reset** (forget everything, including remembered settings).
 
 - **API keys** live in React memory only: they survive moving between pages and are gone on
   reload. Never written to any storage, URL, log or export (Playwright asserts this).
-- **Non-secret settings for servers on this computer** (provider, loopback URL, model, and
-  the permission for that exact URL) are remembered in `localStorage` under
-  `astra.ai.config.v1`, and only once you’ve chosen a model or given permission. Remote and
-  cloud settings are never remembered. A remembered setup shows “Saved, not checked yet”;
-  AstraFocus makes **no request on page load**.
+- **Remembering is opt-in.** Tick “Remember provider, server and model on this device” to
+  store those three non-secret values in `localStorage` (`astra.ai.config.v1`). The API key
+  and the permission are never stored, so after a reload you allow the destination and run a
+  check again. A remembered setup shows “Saved, not checked yet”; AstraFocus makes **no
+  request on page load**. Reset removes it.
 - Changing the provider or URL clears the key, status, model list, diagnostics and permission.
 - Nothing is sent before you tick the permission box for that exact destination.
 - The goal planner sends only the goal text (shown to you first). Suggestions become tasks
@@ -110,7 +132,9 @@ with `think: false`.
 4. Running AstraFocus locally (`npm run dev`)? Nothing else to do. Using the live site? Set
    `OLLAMA_ORIGINS=https://eskinder185.github.io` and restart Ollama (the wizard shows the
    exact command per OS).
-5. AI assistant → **I already have a local AI** → Scan → Pick → Test.
+5. AI assistant → **Use AI on this computer** → **I already have a local AI** → Scan → Pick →
+   Test. `localhost` means the device running the browser, so do this on the computer that
+   runs Ollama, not on a phone.
 
 If Ollama is bound to a LAN address (e.g. `OLLAMA_HOST=10.0.0.243`), AstraFocus refuses it:
 plain HTTP is only allowed for loopback addresses.
@@ -128,15 +152,21 @@ plain HTTP is only allowed for loopback addresses.
 
 - `src/features/ai/*.test.ts` (Vitest, **simulated**): endpoints, adapters, streaming,
   cancellation, timeouts, errors, hardware parsing, recommendations, install guide, storage.
-- `e2e/ai.spec.ts`, `e2e/ai-setup.spec.ts` (Playwright, **simulated** with `page.route`):
-  wizard paths, scan results, CORS-blocked, missing server/model, timeout, cancellation,
-  permissions, storage, keyboard, 375/430 px.
+- `e2e/ai.spec.ts`, `e2e/ai-setup.spec.ts`, `e2e/ai-actions.spec.ts` (Playwright,
+  **simulated** with `page.route`): both setup paths, scan results, CORS-blocked, missing
+  server/model, timeout, cancellation, opt-in remembering, permissions, storage and export,
+  goal planner, Plan my day conflicts and apply, Improve a task, keyboard, 375/430 px.
+- Real-model checks (run manually, Nov 2026, Ollama 0.40.16, `qwen3.5:9b`): goal breakdown
+  7 tasks in 7.3 s; Improve a task valid in 2.5 s; Plan my day 3/3 valid plans in 1.6–2.8 s
+  after making task references tolerant (an earlier run's blocks were all rejected by the
+  parser).
 - `e2e/ai-real.spec.ts` (**real**, skipped by default):
   `REAL_OLLAMA=1 REAL_OLLAMA_MODEL=qwen3.5:9b npx playwright test ai-real` with Ollama on
   `127.0.0.1:11434`.
 
 ## Undo
 
-Everything lives on the `feat/ai-setup-wizard` branch (built on `feat/ai-connections`). To
-drop it, don’t merge it, or delete the branch. To clear remembered settings in a browser,
-use **Reset** on the AI page (or remove `astra.ai.config.v1` from localStorage).
+Everything lives on the `feat/ai-setup-wizard` branch (built on `feat/ai-connections`).
+Revert individual commits with `git revert <sha>`, or don’t merge the branch. To clear
+remembered settings in a browser, use **Reset** on the AI page (or remove
+`astra.ai.config.v1` from localStorage).
